@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,7 +9,7 @@ import { CreateProjectDialog } from "@/components/projects/CreateProjectDialog";
 import { UserHoverCard } from "@/components/ui/user-hover-card";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Search, Plus, ExternalLink, Users, Calendar, Target, TrendingUp } from "lucide-react";
+import { Search, Plus, ExternalLink } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -152,13 +153,6 @@ const Projects = () => {
     return matchesSearch && matchesStatus && matchesCustomer && matchesCategory;
   });
 
-  // Calculate summary stats
-  const totalProjects = projects.length;
-  const onTrackProjects = projects.filter(p => p.status === "On Track").length;
-  const atRiskProjects = projects.filter(p => p.status === "At Risk").length;
-  const criticalProjects = projects.filter(p => p.status === "Critical").length;
-  const avgProgress = Math.round(projects.reduce((sum, p) => sum + p.progress, 0) / projects.length);
-
   return (
     <div className="space-y-6">
       <BreadcrumbNavigation />
@@ -173,53 +167,6 @@ const Projects = () => {
           <Plus className="h-4 w-4" />
           Add Project
         </Button>
-      </div>
-
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="border-l-4 border-l-blue-500">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Projects</CardTitle>
-            <Target className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalProjects}</div>
-            <p className="text-xs text-muted-foreground">Active projects</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-l-4 border-l-green-500">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">On Track</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{onTrackProjects}</div>
-            <p className="text-xs text-muted-foreground">Projects on schedule</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-l-4 border-l-orange-500">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">At Risk</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{atRiskProjects}</div>
-            <p className="text-xs text-muted-foreground">Need attention</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-l-4 border-l-red-500">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Critical</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{criticalProjects}</div>
-            <p className="text-xs text-muted-foreground">Urgent action required</p>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Projects Table */}
