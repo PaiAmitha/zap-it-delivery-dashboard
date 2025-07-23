@@ -42,11 +42,14 @@
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 32.6% 17.5%;
     
-    /* Enhanced sidebar transition variables */
-    --sidebar-width-expanded: 16rem;
-    --sidebar-width-collapsed: 4rem;
+    /* Enhanced sidebar transition variables - responsive */
+    --sidebar-width-expanded: 14rem;
+    --sidebar-width-expanded-sm: 16rem;
+    --sidebar-width-collapsed: 3rem;
+    --sidebar-width-collapsed-sm: 4rem;
     --sidebar-transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
-    --navbar-height: 5rem;
+    --navbar-height: 4rem;
+    --navbar-height-sm: 5rem;
   }
 
   .dark {
@@ -94,7 +97,7 @@
   }
 }
 
-/* Fixed navbar positioning */
+/* Enhanced responsive navbar positioning */
 .navbar-fixed {
   position: fixed;
   top: 0;
@@ -104,7 +107,13 @@
   height: var(--navbar-height);
 }
 
-/* Sidebar positioning below navbar */
+@media (min-width: 640px) {
+  .navbar-fixed {
+    height: var(--navbar-height-sm);
+  }
+}
+
+/* Enhanced responsive sidebar positioning */
 .sidebar-positioned {
   position: fixed;
   top: var(--navbar-height);
@@ -113,7 +122,14 @@
   z-index: 40;
 }
 
-/* Content area positioning with sidebar offset */
+@media (min-width: 640px) {
+  .sidebar-positioned {
+    top: var(--navbar-height-sm);
+    height: calc(100vh - var(--navbar-height-sm));
+  }
+}
+
+/* Enhanced responsive content area positioning */
 .content-with-sidebar {
   margin-left: var(--sidebar-width-expanded);
   padding-top: var(--navbar-height);
@@ -124,12 +140,23 @@
   margin-left: var(--sidebar-width-collapsed);
 }
 
-/* Enhanced sidebar transition styles */
+@media (min-width: 640px) {
+  .content-with-sidebar {
+    margin-left: var(--sidebar-width-expanded-sm);
+    padding-top: var(--navbar-height-sm);
+  }
+  
+  .content-with-sidebar.sidebar-collapsed {
+    margin-left: var(--sidebar-width-collapsed-sm);
+  }
+}
+
+/* Enhanced responsive sidebar transitions */
 .sidebar-transition {
   transition: var(--sidebar-transition);
 }
 
-/* Sidebar state management */
+/* Enhanced responsive sidebar state management */
 .sidebar-expanded {
   width: var(--sidebar-width-expanded);
   min-width: var(--sidebar-width-expanded);
@@ -142,7 +169,21 @@
   max-width: var(--sidebar-width-collapsed);
 }
 
-/* Smooth sidebar transitions */
+@media (min-width: 640px) {
+  .sidebar-expanded {
+    width: var(--sidebar-width-expanded-sm);
+    min-width: var(--sidebar-width-expanded-sm);
+    max-width: var(--sidebar-width-expanded-sm);
+  }
+  
+  .sidebar-collapsed {
+    width: var(--sidebar-width-collapsed-sm);
+    min-width: var(--sidebar-width-collapsed-sm);
+    max-width: var(--sidebar-width-collapsed-sm);
+  }
+}
+
+/* Enhanced responsive smooth transitions */
 .sidebar-smooth {
   transition: width 300ms cubic-bezier(0.4, 0, 0.2, 1),
               min-width 300ms cubic-bezier(0.4, 0, 0.2, 1),
@@ -151,14 +192,26 @@
               opacity 300ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Enhanced navigation styles */
+/* Enhanced responsive navigation styles */
 .nav-enhanced {
   height: var(--navbar-height);
 }
 
-/* Scrollbar styles */
+@media (min-width: 640px) {
+  .nav-enhanced {
+    height: var(--navbar-height-sm);
+  }
+}
+
+/* Enhanced responsive scrollbar styles */
 .scrollbar-enhanced::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
+}
+
+@media (min-width: 640px) {
+  .scrollbar-enhanced::-webkit-scrollbar {
+    width: 8px;
+  }
 }
 
 .scrollbar-enhanced::-webkit-scrollbar-track {
@@ -169,7 +222,7 @@
   @apply bg-muted-foreground/30 rounded-full hover:bg-muted-foreground/50;
 }
 
-/* Animation utilities */
+/* Enhanced responsive animation utilities */
 .animate-fade-in-up {
   animation: fadeInUp 0.5s ease-out;
 }
@@ -185,12 +238,12 @@
   }
 }
 
-/* Enhanced transitions for all navigation elements */
+/* Enhanced responsive transitions for all navigation elements */
 .nav-item-smooth {
   @apply transition-all duration-300 ease-in-out;
 }
 
-/* Responsive layout utilities */
+/* Enhanced responsive layout utilities */
 @media (max-width: 768px) {
   .sidebar-mobile {
     @apply fixed inset-y-0 left-0 z-50 transform transition-transform duration-300;
@@ -205,18 +258,44 @@
     margin-left: 0 !important;
     padding-top: var(--navbar-height);
   }
+  
+  /* Enhanced mobile spacing */
+  .container-mobile {
+    @apply px-4 py-4;
+  }
+  
+  /* Enhanced mobile text sizing */
+  .text-mobile-sm {
+    @apply text-sm;
+  }
+  
+  .text-mobile-base {
+    @apply text-base;
+  }
 }
 
-/* Sidebar toggle button styles */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .content-tablet {
+    @apply px-6 py-6;
+  }
+}
+
+@media (min-width: 1024px) {
+  .content-desktop {
+    @apply px-8 py-8;
+  }
+}
+
+/* Enhanced responsive sidebar toggle button styles */
 .sidebar-toggle {
-  @apply flex items-center justify-center w-8 h-8 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 transition-all duration-200;
+  @apply flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 transition-all duration-200;
 }
 
 .sidebar-toggle:hover {
   @apply shadow-sm;
 }
 
-/* Enhanced Navigation item states with proper contrast */
+/* Enhanced responsive Navigation item states */
 .nav-item-active {
   @apply bg-blue-50 text-blue-700 border-l-4 border-l-blue-600 font-semibold shadow-sm;
 }
@@ -225,17 +304,17 @@
   @apply border-l-4 border-l-transparent hover:bg-gray-50 hover:border-l-gray-300 text-gray-700 hover:text-gray-900;
 }
 
-/* Icon alignment in collapsed state */
+/* Enhanced responsive icon alignment */
 .nav-icon-collapsed {
-  @apply flex items-center justify-center w-5 h-5;
+  @apply flex items-center justify-center w-4 h-4 sm:w-5 sm:h-5;
 }
 
-/* Text transition for expand/collapse */
+/* Enhanced responsive text transition */
 .nav-text-transition {
   @apply transition-all duration-300 ease-in-out;
 }
 
-/* Sidebar navigation specific styles */
+/* Enhanced responsive sidebar navigation styles */
 .sidebar-nav-item {
   @apply relative overflow-hidden rounded-lg border-l-4 transition-all duration-300 ease-in-out;
 }
@@ -262,4 +341,217 @@
 
 .sidebar-nav-item:not(.active) .nav-text {
   @apply text-gray-700 group-hover:text-gray-900;
+}
+
+/* Enhanced responsive glass effect */
+.glass-subtle {
+  @apply bg-white/80 backdrop-blur-sm border border-gray-200/50 shadow-sm;
+}
+
+/* Enhanced responsive button styles */
+.btn-secondary-enhanced {
+  @apply bg-white/90 hover:bg-white text-gray-700 hover:text-gray-900 border border-gray-200 hover:border-gray-300 shadow-sm hover:shadow-md transition-all duration-300;
+}
+
+/* Enhanced responsive focus styles */
+.focus-enhanced {
+  @apply focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-white;
+}
+
+/* Enhanced responsive utility classes */
+.text-responsive-sm {
+  @apply text-xs sm:text-sm;
+}
+
+.text-responsive-base {
+  @apply text-sm sm:text-base;
+}
+
+.text-responsive-lg {
+  @apply text-base sm:text-lg;
+}
+
+.text-responsive-xl {
+  @apply text-lg sm:text-xl;
+}
+
+.text-responsive-2xl {
+  @apply text-xl sm:text-2xl;
+}
+
+.text-responsive-3xl {
+  @apply text-2xl sm:text-3xl;
+}
+
+.gap-responsive-sm {
+  @apply gap-2 sm:gap-3;
+}
+
+.gap-responsive-base {
+  @apply gap-3 sm:gap-4;
+}
+
+.gap-responsive-lg {
+  @apply gap-4 sm:gap-6;
+}
+
+.p-responsive-sm {
+  @apply p-2 sm:p-3;
+}
+
+.p-responsive-base {
+  @apply p-3 sm:p-4;
+}
+
+.p-responsive-lg {
+  @apply p-4 sm:p-6;
+}
+
+.px-responsive-sm {
+  @apply px-3 sm:px-4;
+}
+
+.px-responsive-base {
+  @apply px-4 sm:px-6;
+}
+
+.px-responsive-lg {
+  @apply px-6 sm:px-8;
+}
+
+.py-responsive-sm {
+  @apply py-2 sm:py-3;
+}
+
+.py-responsive-base {
+  @apply py-3 sm:py-4;
+}
+
+.py-responsive-lg {
+  @apply py-4 sm:py-6;
+}
+
+/* Enhanced responsive container utilities */
+.container-responsive {
+  @apply w-full max-w-full px-4 sm:px-6 lg:px-8;
+}
+
+.container-responsive-sm {
+  @apply w-full max-w-full px-3 sm:px-4 md:px-6;
+}
+
+/* Enhanced responsive card styles */
+.card-responsive {
+  @apply rounded-lg sm:rounded-xl shadow-sm hover:shadow-md transition-all duration-300;
+}
+
+.card-responsive-padding {
+  @apply p-4 sm:p-6 lg:p-8;
+}
+
+/* Enhanced responsive modal styles */
+.modal-responsive {
+  @apply w-full max-w-sm sm:max-w-md md:max-w-lg lg:max-w-xl xl:max-w-2xl mx-4 sm:mx-6 lg:mx-8;
+}
+
+.modal-responsive-padding {
+  @apply p-4 sm:p-6 lg:p-8;
+}
+
+/* Enhanced responsive table styles */
+.table-responsive {
+  @apply w-full overflow-x-auto;
+}
+
+.table-responsive table {
+  @apply min-w-full;
+}
+
+.table-responsive th,
+.table-responsive td {
+  @apply text-xs sm:text-sm px-2 sm:px-3 lg:px-4 py-2 sm:py-3;
+}
+
+/* Enhanced responsive form styles */
+.form-responsive {
+  @apply space-y-4 sm:space-y-6;
+}
+
+.form-responsive label {
+  @apply text-sm sm:text-base;
+}
+
+.form-responsive input,
+.form-responsive textarea,
+.form-responsive select {
+  @apply text-sm sm:text-base px-3 sm:px-4 py-2 sm:py-3;
+}
+
+/* Enhanced responsive badge styles */
+.badge-responsive {
+  @apply text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-1.5;
+}
+
+/* Enhanced responsive grid utilities */
+.grid-responsive-1 {
+  @apply grid grid-cols-1;
+}
+
+.grid-responsive-2 {
+  @apply grid grid-cols-1 sm:grid-cols-2;
+}
+
+.grid-responsive-3 {
+  @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3;
+}
+
+.grid-responsive-4 {
+  @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4;
+}
+
+.grid-responsive-gap {
+  @apply gap-3 sm:gap-4 lg:gap-6;
+}
+
+/* Enhanced responsive flex utilities */
+.flex-responsive-col {
+  @apply flex flex-col sm:flex-row;
+}
+
+.flex-responsive-wrap {
+  @apply flex flex-wrap;
+}
+
+.items-responsive-center {
+  @apply items-start sm:items-center;
+}
+
+.justify-responsive-between {
+  @apply justify-start sm:justify-between;
+}
+
+/* Enhanced responsive visibility utilities */
+.hidden-mobile {
+  @apply hidden sm:block;
+}
+
+.hidden-desktop {
+  @apply block sm:hidden;
+}
+
+.hidden-tablet {
+  @apply hidden md:block lg:hidden;
+}
+
+/* Enhanced responsive overflow utilities */
+.overflow-responsive {
+  @apply overflow-hidden sm:overflow-visible;
+}
+
+.overflow-x-responsive {
+  @apply overflow-x-auto sm:overflow-x-visible;
+}
+
+.overflow-y-responsive {
+  @apply overflow-y-auto sm:overflow-y-visible;
 }
