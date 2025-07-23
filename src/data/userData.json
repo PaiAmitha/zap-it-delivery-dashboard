@@ -1,0 +1,133 @@
+
+{
+  "users": [
+    {
+      "id": "user_001",
+      "name": "Kratibha Gangwar",
+      "email": "hr@zapcg.com",
+      "role": "Human Resources",
+      "department": "HR",
+      "avatar": null,
+      "permissions": {
+        "personalInfo": { "view": true, "edit": true },
+        "salaries": { "view": true, "edit": true },
+        "stipends": { "view": true, "edit": true },
+        "projects": { "view": false, "edit": false },
+        "resources": { "view": false, "edit": false },
+        "escalations": { "view": false, "edit": false }
+      }
+    },
+    {
+      "id": "user_002", 
+      "name": "Deepthi Nagam L",
+      "email": "manager@zapcg.com",
+      "role": "Resource Manager",
+      "department": "Resource Management",
+      "avatar": null,
+      "permissions": {
+        "personalInfo": { "view": false, "edit": false },
+        "salaries": { "view": false, "edit": false },
+        "stipends": { "view": false, "edit": false },
+        "projects": { "view": true, "edit": true },
+        "resources": { "view": true, "edit": true },
+        "escalations": { "view": true, "edit": true }
+      }
+    },
+    {
+      "id": "user_003",
+      "name": "Kishore Pallamreddy", 
+      "email": "ceo@zapcg.com",
+      "role": "CEO",
+      "department": "Leadership",
+      "avatar": null,
+      "permissions": {
+        "personalInfo": { "view": true, "edit": false },
+        "salaries": { "view": true, "edit": false },
+        "stipends": { "view": true, "edit": false },
+        "projects": { "view": true, "edit": false },
+        "resources": { "view": true, "edit": false },
+        "escalations": { "view": true, "edit": true }
+      }
+    },
+    {
+      "id": "user_004",
+      "name": "Sai Konda",
+      "email": "cio@zapcg.com", 
+      "role": "CIO",
+      "department": "Leadership",
+      "avatar": null,
+      "permissions": {
+        "personalInfo": { "view": true, "edit": false },
+        "salaries": { "view": true, "edit": false },
+        "stipends": { "view": true, "edit": false },
+        "projects": { "view": true, "edit": false },
+        "resources": { "view": true, "edit": false },
+        "escalations": { "view": true, "edit": true }
+      }
+    },
+    {
+      "id": "user_005",
+      "name": "Prasanth Nair",
+      "email": "cto@zapcg.com", 
+      "role": "CTO",
+      "department": "Leadership",
+      "avatar": null,
+      "permissions": {
+        "personalInfo": { "view": true, "edit": false },
+        "salaries": { "view": true, "edit": false },
+        "stipends": { "view": true, "edit": false },
+        "projects": { "view": true, "edit": false },
+        "resources": { "view": true, "edit": false },
+        "escalations": { "view": true, "edit": true }
+      }
+    },
+    {
+      "id": "user_006",
+      "name": "Santhanakrishnan B",
+      "email": "santhanakrishnan.b@zapcg.com", 
+      "role": "Engineering Manager",
+      "department": "Engineering",
+      "avatar": null,
+      "permissions": {
+        "personalInfo": { "view": false, "edit": false },
+        "salaries": { "view": false, "edit": false },
+        "stipends": { "view": false, "edit": false },
+        "projects": { "view": true, "edit": false },
+        "resources": { "view": false, "edit": false },
+        "escalations": { "view": true, "edit": true }
+      }
+    },
+    {
+      "id": "user_007",
+      "name": "Anurag Mahanto",
+      "email": "anurag.mahanto@zapcg.com", 
+      "role": "Engineering Manager",
+      "department": "Engineering",
+      "avatar": null,
+      "permissions": {
+        "personalInfo": { "view": false, "edit": false },
+        "salaries": { "view": false, "edit": false },
+        "stipends": { "view": false, "edit": false },
+        "projects": { "view": true, "edit": false },
+        "resources": { "view": false, "edit": false },
+        "escalations": { "view": true, "edit": true }
+      }
+    },
+    {
+      "id": "user_008",
+      "name": "Sushama Mohandasan",
+      "email": "sushama.mohandasan@zapcg.com", 
+      "role": "Finance Head",
+      "department": "Finance",
+      "avatar": null,
+      "permissions": {
+        "personalInfo": { "view": false, "edit": false },
+        "salaries": { "view": true, "edit": true },
+        "stipends": { "view": true, "edit": true },
+        "projects": { "view": false, "edit": false },
+        "resources": { "view": false, "edit": false },
+        "escalations": { "view": false, "edit": false }
+      }
+    }
+  ]
+}

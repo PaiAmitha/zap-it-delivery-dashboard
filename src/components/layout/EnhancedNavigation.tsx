@@ -1,0 +1,105 @@
+
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
+import { useState, useEffect } from "react";
+import { GlobalDateFilter } from "./GlobalDateFilter";
+import { useSidebar } from "@/components/ui/sidebar";
+import { useIsMobile } from "@/hooks/use-mobile";
+import userData from "@/data/userData.json";
+
+export const EnhancedNavigation = () => {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const { state } = useSidebar();
+  const isMobile = useIsMobile();
+  const sidebarCollapsed = state === "collapsed";
+
+  useEffect(() => {
+    const user = localStorage.getItem("user");
+    if (user) {
+      const parsedUser = JSON.parse(user);
+      const userDetails = userData.users.find(u => u.name === parsedUser.name);
+      setCurrentUser(userDetails || parsedUser);
+    }
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("user");
+    toast({
+      title: "Logged Out",
+      description: "You have been successfully logged out.",
+    });
+    navigate("/login");
+  };
+
+  return (
+    <header className="nav-enhanced h-20 flex items-center justify-between px-4 sm:px-6 lg:px-8 bg-white/80 backdrop-blur-sm border-b border-border/50 transition-all duration-300 w-full sticky top-0 z-30">
+      {/* Enhanced left section with consistent alignment */}
+      <div className="flex items-center gap-3 sm:gap-4 lg:gap-6 min-w-0 flex-1">
+        <div className="flex items-center gap-3 sm:gap-4 flex-shrink-0">
+          {/* Logo with enhanced alignment */}
+          <div className="flex items-center justify-center">
+            <img 
+              src="/lovable-uploads/a90c85f8-ec35-4fc0-8078-06c2363e005a.png" 
+              alt="Zapcom Group" 
+              className="h-6 sm:h-8 lg:h-10 transition-all duration-300 hover:scale-105 filter drop-shadow-sm"
+            />
+          </div>
+          
+          {/* Title section with responsive text */}
+          <div className="hidden md:flex flex-col min-w-0 justify-center">
+            <h1 className="text-sm sm:text-base lg:text-lg xl:text-xl bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent font-bold truncate leading-tight">
+              IT Delivery Dashboard
+            </h1>
+            <p className="text-xs sm:text-sm text-muted-foreground truncate leading-tight">
+              {isMobile ? "Project delivery" : "Executive overview of project delivery health and performance"}
+            </p>
+          </div>
+        </div>
+      </div>
+      
+      {/* Enhanced right section with consistent spacing */}
+      <div className="flex items-center gap-3 sm:gap-4 lg:gap-6 min-w-0">
+        {/* Enhanced Date Filter with proper alignment */}
+        <div className="glass-subtle p-2 sm:p-3 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 flex items-center">
+          <GlobalDateFilter />
+        </div>
+
+        {/* Enhanced User Info section with consistent alignment */}
+        <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+          {/* User details with enhanced responsive layout */}
+          <div className="hidden sm:flex flex-col items-end min-w-0 justify-center">
+            <div className="flex items-center gap-2 h-6">
+              <span className="text-xs sm:text-sm text-muted-foreground">Welcome,</span>
+              <span className="text-sm sm:text-base text-foreground font-semibold truncate max-w-24 sm:max-w-32 lg:max-w-none">
+                {currentUser?.name || "User"}
+              </span>
+            </div>
+            {currentUser?.role && (
+              <div className="flex justify-end mt-1 sm:mt-2">
+                <Badge className="bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary/80 text-primary-foreground text-xs px-2 sm:px-3 py-1 rounded-full shadow-sm transition-all duration-300">
+                  {currentUser.role}
+                </Badge>
+              </div>
+            )}
+          </div>
+          
+          {/* Enhanced logout button with consistent sizing */}
+          <div className="flex items-center">
+            <Button 
+              variant="outline" 
+              onClick={handleLogout}
+              className="btn-secondary-enhanced hover:shadow-lg focus-enhanced text-xs sm:text-sm font-semibold px-3 sm:px-4 py-2 sm:py-3 h-10 sm:h-12 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 flex items-center justify-center"
+            >
+              <span className="hidden sm:inline">Sign Out</span>
+              <span className="sm:hidden">Out</span>
+            </Button>
+          </div>
+        </div>
+      </div>
+    </header>
+  );
+};

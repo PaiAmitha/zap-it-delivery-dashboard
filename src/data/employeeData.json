@@ -1,0 +1,177 @@
+
+{
+  "employees": [
+    {
+      "employeeId": "EMP001",
+      "fullName": "John Smith",
+      "designation": "Senior Developer",
+      "department": "Engineering",
+      "location": "New York",
+      "experience": "6+ years",
+      "email": "john.smith@zapcom.com",
+      "phone": "+1 555-0123",
+      "joinedDate": "Mar 15, 2019",
+      "billableStatus": true,
+      "utilizationRate": 85,
+      "projectSuccessRate": 92,
+      "performanceRating": 4,
+      "skills": ["React.js", "Node.js", "TypeScript", "AWS"],
+      "upcomingEngagements": [
+        {
+          "title": "E-commerce Platform",
+          "role": "Lead Developer",
+          "client": "TechCorp Inc.",
+          "duration": "Aug 01, 2024 - Dec 31, 2024",
+          "status": "Confirmed"
+        }
+      ],
+      "currentProjects": [
+        {
+          "title": "Dashboard Redesign",
+          "role": "Lead Frontend Developer for complete UI overhaul",
+          "client": "InnovateTech",
+          "started": "Feb 01, 2024",
+          "status": "Active"
+        }
+      ],
+      "performanceFeedback": {
+        "reviewer": "Sarah Johnson (Engineering Manager)",
+        "date": "Q2 2024",
+        "rating": 4,
+        "comment": "John demonstrates excellent technical leadership and consistently delivers high-quality solutions.",
+        "strengths": ["Technical leadership", "Code quality", "Mentoring"],
+        "improvements": ["Documentation", "Time estimation"],
+        "goals": ["Lead architecture decisions", "Mentor junior developers"]
+      }
+    },
+    {
+      "employeeId": "EMP002",
+      "fullName": "Priya Sharma",
+      "designation": "QA Lead",
+      "department": "Quality Assurance",
+      "location": "Hyderabad",
+      "experience": "4+ years",
+      "email": "priya.sharma@zapcom.com",
+      "phone": "+91 9876543211",
+      "joinedDate": "Mar 10, 2021",
+      "billableStatus": true,
+      "utilizationRate": 90,
+      "projectSuccessRate": 88,
+      "performanceRating": 4,
+      "skills": ["Selenium", "TestNG", "API Testing", "Performance Testing"],
+      "upcomingEngagements": [
+        {
+          "title": "Healthcare Portal Testing",
+          "role": "Senior QA Lead",
+          "client": "MedTech Inc.",
+          "duration": "Jul 15, 2024 - Nov 30, 2024",
+          "status": "Confirmed"
+        }
+      ],
+      "currentProjects": [
+        {
+          "title": "Mobile Banking App Testing",
+          "role": "Lead QA engineer for comprehensive testing strategy",
+          "client": "FinanceHub",
+          "started": "Jan 15, 2024",
+          "status": "Active"
+        }
+      ],
+      "performanceFeedback": {
+        "reviewer": "Kavitha Reddy (QA Manager)",
+        "date": "Q1 2024",
+        "rating": 4,
+        "comment": "Priya brings excellent testing methodologies and quality assurance practices.",
+        "strengths": ["Test automation", "Quality standards", "Team coordination"],
+        "improvements": ["Performance testing", "Mobile testing"],
+        "goals": ["Master mobile testing tools", "Lead automation framework"]
+      }
+    },
+    {
+      "employeeId": "EMP003",
+      "fullName": "David Chen",
+      "designation": "DevOps Engineer",
+      "department": "DevOps",
+      "location": "San Francisco",
+      "experience": "5+ years",
+      "email": "david.chen@zapcom.com",
+      "phone": "+1 555-0456",
+      "joinedDate": "Aug 22, 2020",
+      "billableStatus": true,
+      "utilizationRate": 88,
+      "projectSuccessRate": 95,
+      "performanceRating": 5,
+      "skills": ["Kubernetes", "Docker", "AWS", "Jenkins", "Terraform"],
+      "upcomingEngagements": [
+        {
+          "title": "Cloud Migration Project",
+          "role": "Senior DevOps Engineer",
+          "client": "GlobalTech Solutions",
+          "duration": "Sep 01, 2024 - Feb 28, 2025",
+          "status": "Confirmed"
+        }
+      ],
+      "currentProjects": [
+        {
+          "title": "Infrastructure Modernization",
+          "role": "Lead DevOps engineer for cloud infrastructure setup",
+          "client": "Enterprise Corp",
+          "started": "Mar 01, 2024",
+          "status": "Active"
+        }
+      ],
+      "performanceFeedback": {
+        "reviewer": "Michael Rodriguez (DevOps Manager)",
+        "date": "Q2 2024",
+        "rating": 5,
+        "comment": "David consistently exceeds expectations and drives innovation in our infrastructure practices.",
+        "strengths": ["Infrastructure design", "Automation", "Problem solving"],
+        "improvements": ["Documentation", "Knowledge sharing"],
+        "goals": ["Implement GitOps practices", "Mentor team members"]
+      }
+    },
+    {
+      "employeeId": "EMP004",
+      "fullName": "Sarah Wilson",
+      "designation": "Junior Developer",
+      "department": "Engineering",
+      "location": "Austin",
+      "experience": "2+ years",
+      "email": "sarah.wilson@zapcom.com",
+      "phone": "+1 555-0789",
+      "joinedDate": "Jan 10, 2023",
+      "billableStatus": false,
+      "utilizationRate": 65,
+      "projectSuccessRate": 78,
+      "performanceRating": 3,
+      "skills": ["JavaScript", "React", "CSS", "HTML"],
+      "upcomingEngagements": [
+        {
+          "title": "Training Program",
+          "role": "Trainee Developer",
+          "client": "Internal",
+          "duration": "Aug 01, 2024 - Oct 31, 2024",
+          "status": "Confirmed"
+        }
+      ],
+      "currentProjects": [
+        {
+          "title": "Learning Path - Advanced React",
+          "role": "Student developer in advanced React training program",
+          "client": "Internal Training",
+          "started": "May 01, 2024",
+          "status": "Active"
+        }
+      ],
+      "performanceFeedback": {
+        "reviewer": "John Smith (Senior Developer)",
+        "date": "Q1 2024",
+        "rating": 3,
+        "comment": "Sarah shows great potential and is eager to learn. Needs more hands-on experience.",
+        "strengths": ["Quick learner", "Team player", "Attention to detail"],
+        "improvements": ["Backend development", "Testing practices"],
+        "goals": ["Complete React certification", "Work on client project"]
+      }
+    }
+  ]
+}

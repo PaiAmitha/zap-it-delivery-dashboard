@@ -1,0 +1,28 @@
+
+{
+  "locations": [
+    {
+      "country": "India",
+      "cities": ["Bangalore", "Hyderabad"]
+    },
+    {
+      "country": "United States (US)",
+      "cities": ["Texas"]
+    },
+    {
+      "country": "Canada",
+      "cities": []
+    },
+    {
+      "country": "Saudi Arabia",
+      "cities": []
+    }
+  ],
+  "locationsList": [
+    "India - Bangalore",
+    "India - Hyderabad", 
+    "United States (US) - Texas",
+    "Canada",
+    "Saudi Arabia"
+  ]
+}
