@@ -1,0 +1,60 @@
+from app import db
+
+class Employee(db.Model):
+    __tablename__ = 'employees'
+    employee_id = db.Column(db.String(64), primary_key=True)
+    full_name = db.Column(db.String(120), nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    designation = db.Column(db.String(120), nullable=True)
+    department = db.Column(db.String(120), nullable=True)
+    location = db.Column(db.String(120), nullable=True)
+    status = db.Column(db.String(32), nullable=True)
+    resource_type = db.Column(db.String(64), nullable=True)
+    experience_level = db.Column(db.String(64), nullable=True)
+    cost_rate = db.Column(db.Float, nullable=True)
+    billing_rate = db.Column(db.Float, nullable=True)
+    utilization_percentage = db.Column(db.Float, nullable=True)
+    productivity_score = db.Column(db.Float, nullable=True)
+    bench_days = db.Column(db.Integer, nullable=True)
+    last_project_end_date = db.Column(db.String(32), nullable=True)
+    primary_skills = db.Column(db.ARRAY(db.String), nullable=True)
+    secondary_skills = db.Column(db.ARRAY(db.String), nullable=True)
+    years_of_experience = db.Column(db.Float, nullable=True)
+    joining_date = db.Column(db.String(32), nullable=True)
+    bench_start_date = db.Column(db.String(32), nullable=True)
+    phone = db.Column(db.String(32), nullable=True)
+    billable_status = db.Column(db.Boolean, nullable=True)
+    utilization_rate = db.Column(db.Float, nullable=True)
+    project_success_rate = db.Column(db.Float, nullable=True)
+    performance_rating = db.Column(db.Integer, nullable=True)
+    skills = db.Column(db.ARRAY(db.String), nullable=True)
+    projects = db.relationship('Project', secondary='project_employees', back_populates='employees')
+    # HR Data Section
+    employment_type = db.Column(db.String(64), nullable=True)
+    reporting_manager = db.Column(db.String(120), nullable=True)
+
+    # Resource Management Section
+    skill_category = db.Column(db.String(120), nullable=True)
+    current_engagement = db.Column(db.String(120), nullable=True)
+    project_name = db.Column(db.String(120), nullable=True)
+    engagement_description = db.Column(db.String(255), nullable=True)
+    engagement_start_date = db.Column(db.String(32), nullable=True)
+    engagement_end_date = db.Column(db.String(32), nullable=True)
+    aging_in_non_billable = db.Column(db.Integer, nullable=True)
+    current_bench_status = db.Column(db.Boolean, nullable=True)
+    engagement_detail = db.Column(db.String(255), nullable=True)
+
+    # Intern Section
+    is_intern = db.Column(db.Boolean, nullable=True)
+    internship_start_date = db.Column(db.String(32), nullable=True)
+    internship_end_date = db.Column(db.String(32), nullable=True)
+    assigned_project = db.Column(db.String(120), nullable=True)
+    mentor_name = db.Column(db.String(120), nullable=True)
+    stipend = db.Column(db.Float, nullable=True)
+
+    # Finance Section
+    monthly_salary_cost = db.Column(db.Float, nullable=True)
+    monthly_revenue_generated = db.Column(db.Float, nullable=True)
+    cost_center = db.Column(db.String(120), nullable=True)
+    total_ytd_cost = db.Column(db.Float, nullable=True)
+    total_ytd_revenue = db.Column(db.Float, nullable=True)

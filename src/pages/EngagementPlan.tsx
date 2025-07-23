@@ -1,5 +1,6 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { getEmployee } from "@/lib/api";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { BreadcrumbNavigation } from "@/components/layout/BreadcrumbNavigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,14 +34,45 @@ const EngagementPlan = () => {
     priority: "medium"
   });
 
-  // Mock resource data - in real app, fetch based on resourceId
-  const resourceData = {
-    id: resourceId || "EMP001",
-    name: "Alex Rodriguez",
-    role: "Frontend Developer",
-    releaseDate: "2025-08-15",
-    skills: ["React.js", "Node.js", "TypeScript", "AWS"]
-  };
+  const [resourceData, setResourceData] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchResource = async () => {
+      if (!resourceId) {
+        return;
+      }
+      setLoading(true);
+      setError(null);
+      try {
+        const token = localStorage.getItem('token') || '';
+        const data = await getEmployee(token, resourceId) as import("@/types/employee").Employee;
+        setResourceData({
+          id: data.employee_id,
+          name: data.full_name,
+          role: data.designation,
+          releaseDate: data.last_project_end_date || '',
+          skills: data.primary_skills || [],
+        });
+      } catch (err: any) {
+        setError(err?.message || 'Failed to fetch resource');
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (resourceId) {
+      fetchResource();
+    } else {
+      setResourceData({
+        id: "EMP001",
+        name: "Alex Rodriguez",
+        role: "Frontend Developer",
+        releaseDate: "2025-08-15",
+        skills: ["React.js", "Node.js", "TypeScript", "AWS"]
+      });
+    }
+  }, [resourceId]);
 
   const engagementOptions = [
     { id: "awaiting", label: "Awaiting Engagement Plan", description: "Resource is available and awaiting assignment" },
@@ -296,36 +328,42 @@ const EngagementPlan = () => {
         </div>
 
         {/* Resource Summary Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5" />
-              Resource Information
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-blue-500 text-white rounded-full flex items-center justify-center font-medium">
-                {resourceData.name.split(' ').map(n => n[0]).join('')}
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-lg">{resourceData.name}</h3>
-                <p className="text-gray-600">{resourceData.role}</p>
-                <p className="text-sm text-gray-500">Release Date: {resourceData.releaseDate}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500 mb-2">Skills</p>
-                <div className="flex flex-wrap gap-1">
-                  {resourceData.skills.map((skill, index) => (
-                    <Badge key={index} variant="outline" className="text-xs">
-                      {skill}
-                    </Badge>
-                  ))}
+        {loading ? (
+          <Card><CardContent className="py-8 text-center">Loading resource information...</CardContent></Card>
+        ) : error ? (
+          <Card><CardContent className="py-8 text-center text-red-500">{error}</CardContent></Card>
+        ) : resourceData ? (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="h-5 w-5" />
+                Resource Information
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-blue-500 text-white rounded-full flex items-center justify-center font-medium">
+                  {resourceData.name.split(' ').map((n: string) => n[0]).join('')}
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-lg">{resourceData.name}</h3>
+                  <p className="text-gray-600">{resourceData.role}</p>
+                  <p className="text-sm text-gray-500">Release Date: {resourceData.releaseDate}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500 mb-2">Skills</p>
+                  <div className="flex flex-wrap gap-1">
+                    {resourceData.skills.map((skill: string, index: number) => (
+                      <Badge key={index} variant="outline" className="text-xs">
+                        {skill}
+                      </Badge>
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        ) : null}
 
         {/* Engagement Plan Selection */}
         <Card>

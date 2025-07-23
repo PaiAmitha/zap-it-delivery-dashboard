@@ -13,10 +13,13 @@ import { Button } from "@/components/ui/button";
 import { ExternalLink, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
-import dashboardData from "@/data/dashboardData.json";
+import { getDashboard, DashboardData } from "@/lib/api";
 
 const Dashboard = () => {
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [activeProjects, setActiveProjects] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   const { selectedDateRange } = useGlobalDate();
   const { state } = useSidebar();
@@ -24,94 +27,23 @@ const Dashboard = () => {
   const isMobile = useIsMobile();
   const sidebarCollapsed = state === "collapsed";
 
-  // Use real-time data updates with CRUD refresh enabled
-  const { refreshData, triggerCRUDEvent } = useRealtimeData({
-    onDataUpdate: (dateRange) => {
-      console.log('Dashboard data updated for date range:', dateRange);
-      setData(dashboardData);
-    },
-    enableCRUDRefresh: true
-  });
-
-  // Sample project data matching the image
-  const activeProjects = [
-    {
-      id: 1,
-      name: "E-Commerce Platform",
-      customer: "TechCorp",
-      category: "On Track",
-      healthStatus: "Green",
-      onTimePercentage: 85,
-      description: "Customer engagement platform",
-      progress: 65,
-      teamSize: 8
-    },
-    {
-      id: 2,
-      name: "Customer Integration",
-      customer: "Zenmate",
-      category: "At Risk",
-      healthStatus: "Amber",
-      onTimePercentage: 72,
-      description: "Backend services integration",
-      progress: 45,
-      teamSize: 6
-    },
-    {
-      id: 3,
-      name: "Mobile Banking App",
-      customer: "FinanceFirst Bank",
-      category: "On Track", 
-      healthStatus: "Green",
-      onTimePercentage: 92,
-      description: "Customer payments platform",
-      progress: 80,
-      teamSize: 12
-    },
-    {
-      id: 4,
-      name: "Blockchain Analytics",
-      customer: "CryptoTech",
-      category: "Critical",
-      healthStatus: "Critical",
-      onTimePercentage: 58,
-      description: "Analytics dashboard",
-      progress: 35,
-      teamSize: 10
-    },
-    {
-      id: 5,
-      name: "Healthcare Portal",
-      customer: "MedLife Systems",
-      category: "At Risk",
-      healthStatus: "Amber",
-      onTimePercentage: 68,
-      description: "Community trust portal",
-      progress: 55,
-      teamSize: 15
-    },
-    {
-      id: 6,
-      name: "IoT Dashboard",
-      customer: "SmartHome Inc",
-      category: "On Track",
-      healthStatus: "Green",
-      onTimePercentage: 88,
-      description: "Customer control platform",
-      progress: 70,
-      teamSize: 7
-    }
-  ];
-
   useEffect(() => {
-    setData(dashboardData);
-  }, []);
-
-  useEffect(() => {
-    if (selectedDateRange) {
-      console.log('Dashboard: Date range changed', selectedDateRange);
-      setData(dashboardData);
-    }
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        // TODO: Replace with real auth token logic
+        const token = localStorage.getItem('token') || '';
+        const dashboard = await getDashboard(token);
+        setData(dashboard);
+        setActiveProjects(dashboard.active_projects || []);
+      } catch (err: any) {
+        setError(err?.message || 'Failed to load dashboard');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
   }, [selectedDateRange]);
 
   const getHealthStatusColor = (status: string) => {
@@ -127,12 +59,21 @@ const Dashboard = () => {
     navigate(`/project-details/${projectId}`);
   };
 
-  if (!data) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center h-32 sm:h-64 w-full">
         <div className="text-center">
           <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-slate-600 text-sm sm:text-base">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-32 sm:h-64 w-full">
+        <div className="text-center">
+          <p className="text-red-600 text-sm sm:text-base">{error}</p>
         </div>
       </div>
     );

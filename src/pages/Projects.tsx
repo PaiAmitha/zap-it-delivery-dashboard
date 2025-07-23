@@ -60,74 +60,30 @@ const Projects = () => {
     }
   }, [location.state]);
 
-  const [projects] = useState<Project[]>([
-    {
-      id: "1",
-      name: "AI Chatbot Integration",
-      description: "Next generation AI chatbot for customer support",
-      customer: "Zenmate",
-      category: "At Risk",
-      status: "On Track",
-      progress: 67,
-      teamSize: 8,
-      teamLead: "Sarah Johnson"
-    },
-    {
-      id: "2",
-      name: "Blockchain Analytics",
-      description: "Blockchain analytics dashboard",
-      customer: "Zenmate",
-      category: "Critical",
-      status: "Critical",
-      progress: 34,
-      teamSize: 10,
-      teamLead: "Mike Chen"
-    },
-    {
-      id: "3",
-      name: "E-Commerce Platform",
-      description: "Core platform development and API integration",
-      customer: "TechCorp Inc",
-      category: "Customer",
-      status: "On Track",
-      progress: 85,
-      teamSize: 12,
-      teamLead: "Alex Rodriguez"
-    },
-    {
-      id: "4",
-      name: "Healthcare Portal",
-      description: "Patient management portal",
-      customer: "MedLife Systems",
-      category: "Customer",
-      status: "At Risk",
-      progress: 58,
-      teamSize: 15,
-      teamLead: "Emily Davis"
-    },
-    {
-      id: "5",
-      name: "IoT Dashboard",
-      description: "IoT device monitoring dashboard",
-      customer: "Zenmate",
-      category: "On Track",
-      status: "On Track",
-      progress: 72,
-      teamSize: 4,
-      teamLead: "James Wilson"
-    },
-    {
-      id: "6",
-      name: "Mobile Banking App",
-      description: "Modern mobile banking application",
-      customer: "FinanceFruit Bank",
-      category: "On Track",
-      status: "On Track",
-      progress: 92,
-      teamSize: 6,
-      teamLead: "Daniel Lee"
-    }
-  ]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        // TODO: Replace with real auth token logic
+        const token = localStorage.getItem('token') || '';
+        const data = await import("@/lib/api").then(m => m.getProjects(token));
+        setProjects((data as Project[]) || []);
+      } catch (err: any) {
+        setError(err?.message || 'Failed to load projects');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  if (loading) return <div className="p-8 text-center">Loading...</div>;
+  if (error) return <div className="p-8 text-center text-red-500">{error}</div>;
 
   const getStatusBadge = (status: string) => {
     const statusStyles = {

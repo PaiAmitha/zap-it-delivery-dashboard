@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { BreadcrumbNavigation } from "@/components/layout/BreadcrumbNavigation";
@@ -11,7 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Eye, Search, Filter, Mail, Phone, MapPin } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Employee, ResourceFilter } from "@/types/employee";
-import employeeData from "@/data/employeeResourceData.json";
+
+import { getEmployees } from "@/lib/api";
 
 const ResourceList = () => {
   const { filterType, filterValue } = useParams();
@@ -23,14 +23,34 @@ const ResourceList = () => {
   const [departmentFilter, setDepartmentFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [showMobileView, setShowMobileView] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
 
   useEffect(() => {
-    setEmployees(employeeData.employees as Employee[]);
-    setShowMobileView(isMobile);
+    const fetchEmployees = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const token = localStorage.getItem('token') || '';
+        // Type the response as { employees: Employee[] } | Employee[]
+        const data = await getEmployees(token) as { employees?: Employee[] } | Employee[];
+        const employeesList = Array.isArray(data) ? data : (data.employees || []);
+        setEmployees(employeesList as Employee[]);
+      } catch (err: any) {
+        setError(err?.message || 'Failed to fetch employees');
+      } finally {
+        setLoading(false);
+      }
+      setShowMobileView(isMobile);
+    };
+    fetchEmployees();
   }, [isMobile]);
 
   useEffect(() => {
-    if (!filterType || !filterValue) return;
+    if (!filterType || !filterValue) {
+      return;
+    }
 
     let filtered = employees.filter(emp => {
       switch (filterType) {
@@ -79,15 +99,22 @@ const ResourceList = () => {
   };
 
   const getBenchDaysColor = (days: number) => {
-    if (days === 0) return 'default';
-    if (days <= 30) return 'secondary';
-    if (days <= 60) return 'destructive';
+    if (days === 0) {
+      return 'default';
+    }
+    if (days <= 30) {
+      return 'secondary';
+    }
+    if (days <= 60) {
+      return 'destructive';
+    }
     return 'destructive';
   };
 
   const getFilterDisplayName = () => {
-    if (!filterType || !filterValue) return "All Resources";
-    
+    if (!filterType || !filterValue) {
+      return "All Resources";
+    }
     switch (filterType) {
       case 'location':
         return `Resources in ${filterValue}`;
@@ -202,6 +229,20 @@ const ResourceList = () => {
 
   return (
     <div className="space-y-4 sm:space-y-6">
+      {loading && (
+        <Card className="mx-1 sm:mx-0">
+          <CardContent className="text-center py-8">
+            <p className="text-gray-500">Loading employees...</p>
+          </CardContent>
+        </Card>
+      )}
+      {error && (
+        <Card className="mx-1 sm:mx-0">
+          <CardContent className="text-center py-8">
+            <p className="text-red-500">{error}</p>
+          </CardContent>
+        </Card>
+      )}
       <div className="px-1 sm:px-0">
         <BreadcrumbNavigation />
       </div>

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -11,6 +10,7 @@ import { ResourceManagementForm } from "@/components/forms/ResourceManagementFor
 import { InternDataForm } from "@/components/forms/InternDataForm";
 import { FinanceDataForm } from "@/components/forms/FinanceDataForm";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { createEmployee } from "@/lib/api";
 
 const AddResource = () => {
   const { toast } = useToast();
@@ -58,14 +58,29 @@ const AddResource = () => {
     totalYTDCost: "",
     totalYTDRevenue: ""
   });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast({
-      title: "Resource Added Successfully",
-      description: "New resource has been added to the system.",
-    });
-    navigate("/resource-management");
+    setLoading(true);
+    setError(null);
+    setSuccess(false);
+    try {
+      const token = localStorage.getItem('token') || '';
+      await createEmployee(token, formData);
+      setSuccess(true);
+      toast({
+        title: "Resource Added Successfully",
+        description: "New resource has been added to the system.",
+      });
+      navigate("/resource-management");
+    } catch (err: any) {
+      setError(err?.message || 'Failed to add resource');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleInputChange = (field: string, value: string | string[]) => {
@@ -94,6 +109,9 @@ const AddResource = () => {
       </div>
 
       <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0">
+        {loading && <div className="text-blue-500">Adding resource...</div>}
+        {error && <div className="text-red-500">{error}</div>}
+        {success && <div className="text-green-600">Resource added successfully!</div>}
         <Tabs defaultValue="hr" className="flex-1 flex flex-col">
           <TabsList className={`grid w-full ${isIntern ? 'grid-cols-4' : 'grid-cols-3'}`}>
             <TabsTrigger value="hr">HR Data</TabsTrigger>

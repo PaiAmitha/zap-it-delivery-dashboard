@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -10,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { X, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
+import { getProjects, getEmployees } from "@/lib/api";
 
 const ProjectAllocation = () => {
   const { toast } = useToast();
@@ -18,6 +18,10 @@ const ProjectAllocation = () => {
     selectedResource: "",
     allocationStartDate: ""
   });
+  const [projects, setProjects] = useState<any[]>([]);
+  const [resources, setResources] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,6 +43,25 @@ const ProjectAllocation = () => {
     });
     // In a real application, this would trigger ML-based matching
   };
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const token = localStorage.getItem('token') || '';
+        const projectsData = await getProjects(token) as { projects?: any[] } | any[];
+        setProjects(Array.isArray(projectsData) ? projectsData : (projectsData.projects || []));
+        const employeesData = await getEmployees(token) as { employees?: any[] } | any[];
+        setResources(Array.isArray(employeesData) ? employeesData : (employeesData.employees || []));
+      } catch (err: any) {
+        setError(err?.message || 'Failed to fetch allocation data');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -78,10 +101,9 @@ const ProjectAllocation = () => {
                     <SelectValue placeholder="Choose project" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="project-alpha">E-commerce Platform - TechCorp</SelectItem>
-                    <SelectItem value="beta-platform">Mobile Banking App - FinanceFlow</SelectItem>
-                    <SelectItem value="customer-portal">Customer Portal - GlobalTech</SelectItem>
-                    <SelectItem value="data-migration">Data Migration - DataCorp</SelectItem>
+                    {projects.map((project) => (
+                      <SelectItem key={project.id} value={project.id}>{project.projectName || project.name}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -93,10 +115,11 @@ const ProjectAllocation = () => {
                     <SelectValue placeholder="Choose resource" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="john-smith">John Smith - Senior Developer</SelectItem>
-                    <SelectItem value="mike-johnson">Mike Johnson - DevOps Engineer</SelectItem>
-                    <SelectItem value="emma-wilson">Emma Wilson - Frontend Developer</SelectItem>
-                    <SelectItem value="alex-chen">Alex Chen - QA Engineer</SelectItem>
+                    {resources.map((resource) => (
+                      <SelectItem key={resource.employee_id} value={resource.employee_id}>
+                        {resource.full_name} - {resource.designation}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -194,6 +217,9 @@ const ProjectAllocation = () => {
           </CardContent>
         </Card>
       </div>
+
+      {loading && <div className="text-blue-500">Loading allocation data...</div>}
+      {error && <div className="text-red-500">{error}</div>}
     </div>
   );
 };

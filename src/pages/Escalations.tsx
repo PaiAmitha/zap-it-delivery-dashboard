@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import dashboardData from "@/data/dashboardData.json";
+import { getEscalations } from "@/lib/api";
 
 interface Escalation {
   id: string;
@@ -61,8 +61,29 @@ const Escalations = () => {
     { month: 'Feb 2025', rate: 100 }
   ];
 
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   useEffect(() => {
-    setEscalations(dashboardData.escalations);
+    const fetchEscalations = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const token = localStorage.getItem('token') || '';
+        const result = await getEscalations(token) as { escalations?: Escalation[] } | Escalation[];
+        if (Array.isArray(result)) {
+          setEscalations(result);
+        } else if (result && Array.isArray(result.escalations)) {
+          setEscalations(result.escalations);
+        } else {
+          setEscalations([]);
+        }
+      } catch (err: any) {
+        setError(err?.message || 'Failed to fetch escalations');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchEscalations();
   }, []);
 
   // Extract unique customers and projects for dropdown options
@@ -128,57 +149,30 @@ const Escalations = () => {
     setStatusFilter("All Statuses");
   };
 
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <BreadcrumbNavigation />
+        <div className="text-center py-12">Loading escalations...</div>
+      </div>
+    );
+  }
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <BreadcrumbNavigation />
+        <Card>
+          <CardContent className="text-center py-12">
+            <span className="text-red-500">{error}</span>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
   return (
     <div className="space-y-6">
       <BreadcrumbNavigation />
-      
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Escalation Management</h1>
-          <p className="text-gray-600">Manage customer escalations and track resolutions</p>
-        </div>
-        <Button onClick={handleCreateNew} className="flex items-center gap-2">
-          New Escalation
-        </Button>
-      </div>
-
-      {/* Escalation Trends Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">📈 Escalation Trends (Last 12 Months)</CardTitle>
-            <div className="text-sm text-gray-600">Monthly Escalation Volume</div>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={monthlyVolumeData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" tick={{fontSize: 12}} />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="escalations" fill="#3b82f6" />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Resolution Rate Trend (%)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={200}>
-              <LineChart data={resolutionTrendData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" tick={{fontSize: 12}} />
-                <YAxis domain={[0, 100]} />
-                <Tooltip formatter={(value) => [`${value}%`, 'Resolution Rate']} />
-                <Line type="monotone" dataKey="rate" stroke="#10b981" strokeWidth={2} />
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </div>
+      {/* ...existing code... */}
 
       {/* Summary KPIs - Updated with filtered data */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

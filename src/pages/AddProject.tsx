@@ -9,6 +9,7 @@ import { DeliveryMetricsForm } from "@/components/forms/DeliveryMetricsForm";
 import { EngineeringForm } from "@/components/forms/EngineeringForm";
 import { TeamForm } from "@/components/forms/TeamForm";
 import { BreadcrumbNavigation } from "@/components/layout/BreadcrumbNavigation";
+import { createProject } from "@/lib/api";
 
 interface TeamMember {
   id: string;
@@ -95,14 +96,33 @@ const AddProject = () => {
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [milestones, setMilestones] = useState<Milestone[]>([]);
   const [risks, setRisks] = useState<Risk[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast({
-      title: "Project Created Successfully",
-      description: "New project has been created in the system.",
-    });
-    console.log("Project form submitted:", { formData, teamMembers, milestones, risks });
+    setLoading(true);
+    setError(null);
+    setSuccess(false);
+    try {
+      const token = localStorage.getItem('token') || '';
+      await createProject(token, {
+        ...formData,
+        teamMembers,
+        milestones,
+        risks,
+      });
+      setSuccess(true);
+      toast({
+        title: "Project Created Successfully",
+        description: "New project has been created in the system.",
+      });
+    } catch (err: any) {
+      setError(err?.message || 'Failed to create project');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -119,6 +139,9 @@ const AddProject = () => {
           <CardDescription>Create a comprehensive project with all details</CardDescription>
         </CardHeader>
         <CardContent>
+          {loading && <div className="text-blue-500">Creating project...</div>}
+          {error && <div className="text-red-500">{error}</div>}
+          {success && <div className="text-green-600">Project created successfully!</div>}
           <form onSubmit={handleSubmit} className="space-y-6">
             <Tabs defaultValue="overview" className="w-full">
               <TabsList className="grid w-full grid-cols-4">

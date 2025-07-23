@@ -4,25 +4,14 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Users, TrendingUp, Calendar, DollarSign } from "lucide-react";
 import { Link } from "react-router-dom";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { useResourceData } from "@/hooks/useResourceData";
 
 const ResourceOverview = () => {
-  const benchData = [
-    { name: '0-30 days', value: 8, percentage: 35 },
-    { name: '31-60 days', value: 7, percentage: 30 },
-    { name: '61-90 days', value: 5, percentage: 22 },
-    { name: '90+ days', value: 3, percentage: 13 },
-  ];
-
-  const monthlyBenchCost = [
-    { month: 'Jan', cost: 165000 },
-    { month: 'Feb', cost: 175000 },
-    { month: 'Mar', cost: 185000 },
-    { month: 'Apr', cost: 182000 },
-    { month: 'May', cost: 190000 },
-    { month: 'Jun', cost: 188000 },
-  ];
-
+  const { loading, error, bench_aging_data = [], monthly_growth_data = [], total_resources, active_resources, non_billable_resources_count, non_billable_cost_drain, utilization_rate } = useResourceData();
   const COLORS = ['#22c55e', '#eab308', '#f97316', '#ef4444'];
+
+  if (loading) return <div className="p-6">Loading resource analytics...</div>;
+  if (error) return <div className="p-6 text-red-500">{error}</div>;
 
   return (
     <div className="space-y-6">
@@ -40,28 +29,28 @@ const ResourceOverview = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <KPICard
           title="Total Headcount"
-          value={142}
-          trend={{ value: "+2.5% from last month", isPositive: true }}
+          value={total_resources ?? '-'}
+          trend={undefined}
           icon={Users}
           iconColor="text-blue-500"
         />
         <KPICard
           title="Bench Count"
-          value={23}
-          subtitle="16.2% of total"
+          value={non_billable_resources_count ?? '-'}
+          subtitle={total_resources ? `${((non_billable_resources_count/total_resources)*100).toFixed(1)}% of total` : undefined}
           icon={Users}
           iconColor="text-orange-500"
         />
         <KPICard
           title="Monthly Bench Cost"
-          value="$185,000"
-          trend={{ value: "+3.2% from last month", isPositive: false }}
+          value={non_billable_cost_drain ? `$${non_billable_cost_drain.toLocaleString()}` : '-'}
+          trend={undefined}
           icon={DollarSign}
           iconColor="text-red-500"
         />
         <KPICard
-          title="Training Coverage"
-          value="78%"
+          title="Utilization Rate"
+          value={utilization_rate ? `${utilization_rate}%` : '-'}
           icon={TrendingUp}
           iconColor="text-purple-500"
         />
@@ -75,31 +64,38 @@ const ResourceOverview = () => {
           <div className="mb-4">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm text-gray-600">Average Bench Duration</span>
-              <span className="font-semibold text-blue-600">42 days</span>
+              <span className="font-semibold text-blue-600">
+                {bench_aging_data && bench_aging_data.length > 0
+                  ? `${(
+                      bench_aging_data.reduce((acc, item) => acc + (item.count * parseInt(item.bucket)), 0) /
+                        bench_aging_data.reduce((acc, item) => acc + item.count, 0)
+                    ).toFixed(0)} days`
+                  : '-'}
+              </span>
             </div>
           </div>
           <div className="space-y-3">
-            {benchData.map((item, index) => (
-              <div key={item.name} className="flex items-center justify-between">
+            {bench_aging_data && bench_aging_data.length > 0 ? bench_aging_data.map((item, index) => (
+              <div key={item.bucket} className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-4 h-4 rounded" style={{ backgroundColor: COLORS[index] }}></div>
-                  <span className="text-sm">{item.name}</span>
+                  <div className="w-4 h-4 rounded" style={{ backgroundColor: COLORS[index % COLORS.length] }}></div>
+                  <span className="text-sm">{item.bucket}</span>
                 </div>
                 <div className="flex items-center gap-4">
                   <div className="w-32 bg-gray-200 rounded-full h-2">
                     <div 
                       className="h-2 rounded-full" 
                       style={{ 
-                        width: `${item.percentage}%`, 
-                        backgroundColor: COLORS[index] 
+                        width: `${item.count}%`, 
+                        backgroundColor: COLORS[index % COLORS.length] 
                       }}
                     ></div>
                   </div>
-                  <span className="text-sm font-medium w-8">{item.value}</span>
-                  <span className="text-sm text-gray-500 w-8">{item.percentage}%</span>
+                  <span className="text-sm font-medium w-8">{item.count}</span>
+                  <span className="text-sm text-gray-500 w-8">{item.riskLevel}</span>
                 </div>
               </div>
-            ))}
+            )) : <div>No bench aging data available.</div>}
           </div>
         </div>
 
@@ -109,14 +105,14 @@ const ResourceOverview = () => {
           <ResponsiveContainer width="100%" height={200}>
             <PieChart>
               <Pie
-                data={benchData}
+                data={bench_aging_data}
                 cx="50%"
                 cy="50%"
                 innerRadius={40}
                 outerRadius={80}
-                dataKey="value"
+                dataKey="count"
               >
-                {benchData.map((entry, index) => (
+                {bench_aging_data && bench_aging_data.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
@@ -124,10 +120,10 @@ const ResourceOverview = () => {
             </PieChart>
           </ResponsiveContainer>
           <div className="grid grid-cols-2 gap-2 mt-4">
-            {benchData.map((item, index) => (
-              <div key={item.name} className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded" style={{ backgroundColor: COLORS[index] }}></div>
-                <span className="text-xs text-gray-600">{item.name}</span>
+            {bench_aging_data && bench_aging_data.map((item, index) => (
+              <div key={item.bucket} className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded" style={{ backgroundColor: COLORS[index % COLORS.length] }}></div>
+                <span className="text-xs text-gray-600">{item.bucket}</span>
               </div>
             ))}
           </div>
@@ -137,12 +133,12 @@ const ResourceOverview = () => {
         <div className="chart-container lg:col-span-2">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Monthly Bench Cost</h3>
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={monthlyBenchCost}>
+            <BarChart data={monthly_growth_data}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="month" />
               <YAxis />
               <Tooltip formatter={(value) => [`$${value.toLocaleString()}`, 'Cost']} />
-              <Bar dataKey="cost" fill="#ef4444" />
+              <Bar dataKey="count" fill="#ef4444" />
             </BarChart>
           </ResponsiveContainer>
         </div>

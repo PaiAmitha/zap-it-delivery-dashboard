@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { getDashboard, DashboardData } from "@/lib/api";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,50 +16,46 @@ import { Filter, AlertTriangle, TrendingDown, DollarSign, Users, Clock } from "l
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 
 const NonBillableResourcesKPI = () => {
-  const summaryStats = {
-    nonBillableCount: 45,
-    costDrain: 285000,
-    avgBenchDays: 42,
-    reallocationOpportunities: 12
-  };
 
-  const benchReasonData = [
-    { reason: "Training", count: 15, cost: 95000, color: "#8884d8" },
-    { reason: "Shadow Project", count: 12, cost: 75000, color: "#82ca9d" },
-    { reason: "Internal Tasks", count: 10, cost: 65000, color: "#ffc658" },
-    { reason: "PIP", count: 8, cost: 50000, color: "#ff7300" }
-  ];
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [summaryStats, setSummaryStats] = useState<any>(null);
+  const [benchReasonData, setBenchReasonData] = useState<any[]>([]);
+  const [benchAgingData, setBenchAgingData] = useState<any[]>([]);
+  const [weeklyMovementData, setWeeklyMovementData] = useState<any[]>([]);
+  const [locationDistribution, setLocationDistribution] = useState<any[]>([]);
+  const [nonBillableResourcesList, setNonBillableResourcesList] = useState<any[]>([]);
 
-  const benchAgingData = [
-    { bucket: "0-30 days", count: 18, cost: 115000, riskLevel: "low" },
-    { bucket: "31-60 days", count: 15, cost: 95000, riskLevel: "medium" },
-    { bucket: "61-90 days", count: 8, cost: 50000, riskLevel: "high" },
-    { bucket: ">90 days", count: 4, cost: 25000, riskLevel: "critical" }
-  ];
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        // TODO: Replace with real auth token logic
+        const token = localStorage.getItem('token') || '';
+        const data = await getDashboard(token);
+        setSummaryStats({
+          nonBillableCount: data.non_billable_resources_count,
+          costDrain: data.non_billable_cost_drain,
+          avgBenchDays: data.avg_bench_days,
+          reallocationOpportunities: data.reallocation_opportunities,
+        });
+        setBenchReasonData(data.bench_reason_data || []);
+        setBenchAgingData(data.bench_aging_data || []);
+        setWeeklyMovementData(data.weekly_movement_data || []);
+        setLocationDistribution(data.non_billable_location_distribution || []);
+        setNonBillableResourcesList(data.non_billable_resources_list || []);
+      } catch (err: any) {
+        setError(err?.message || 'Failed to load data');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
 
-  const weeklyMovementData = [
-    { week: "Week 1", moved: 3, added: 5 },
-    { week: "Week 2", moved: 5, added: 2 },
-    { week: "Week 3", moved: 2, added: 4 },
-    { week: "Week 4", moved: 4, added: 3 },
-    { week: "Week 5", moved: 6, added: 1 },
-    { week: "Week 6", moved: 3, added: 3 }
-  ];
-
-  const locationDistribution = [
-    { location: "Bangalore", count: 18, cost: 115000 },
-    { location: "Hyderabad", count: 12, cost: 75000 },
-    { location: "Mumbai", count: 10, cost: 65000 },
-    { location: "Chennai", count: 5, cost: 30000 }
-  ];
-
-  const nonBillableResourcesList = [
-    { name: "David Brown", designation: "Software Engineer", reason: "Training", benchDays: 25, location: "Bangalore", monthlyCost: 8500, suggestion: "Assign to TechCorp project" },
-    { name: "Lisa Wong", designation: "QA Engineer", reason: "Shadow Project", benchDays: 45, location: "Hyderabad", monthlyCost: 7200, suggestion: "Move to billing on DataSys" },
-    { name: "Tom Wilson", designation: "DevOps Engineer", reason: "Internal Tasks", benchDays: 60, location: "Mumbai", monthlyCost: 9200, suggestion: "Client project ready" },
-    { name: "Anna Garcia", designation: "Frontend Developer", reason: "PIP", benchDays: 75, location: "Chennai", monthlyCost: 6800, suggestion: "Performance review required" },
-    { name: "James Lee", designation: "Backend Developer", reason: "Training", benchDays: 15, location: "Bangalore", monthlyCost: 8900, suggestion: "Upskilling in progress" }
-  ];
+  if (loading) return <div className="p-8 text-center">Loading...</div>;
+  if (error) return <div className="p-8 text-center text-red-500">{error}</div>;
 
   const getRiskColor = (level: string) => {
     switch (level) {

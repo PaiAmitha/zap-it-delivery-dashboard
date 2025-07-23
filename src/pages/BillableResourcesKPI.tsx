@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { getDashboard, DashboardData } from "@/lib/api";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,47 +16,51 @@ import { Filter, DollarSign, TrendingUp, Users, Clock } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, Area, AreaChart } from 'recharts';
 
 const BillableResourcesKPI = () => {
-  const summaryStats = {
-    billableCount: 89,
-    utilizationRate: 85.2,
-    avgBillingRate: 75,
-    monthlyRevenue: 1200000,
-    productivityScore: 92
-  };
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [summaryStats, setSummaryStats] = useState<{
+    billableCount: number;
+    utilizationRate: number;
+    avgBillingRate: number;
+    monthlyRevenue: number;
+    productivityScore: number;
+  } | null>(null);
+  const [utilizationData, setUtilizationData] = useState<DashboardData["utilization_trend"]>([]);
+  const [clientAllocationData, setClientAllocationData] = useState<DashboardData["client_allocation"]>([]);
+  const [productivityData, setProductivityData] = useState<DashboardData["productivity_trend"]>([]);
+  const [billableResourcesList, setBillableResourcesList] = useState<DashboardData["billable_resources"]>([]);
 
-  const utilizationData = [
-    { week: "Week 1", utilization: 82 },
-    { week: "Week 2", utilization: 85 },
-    { week: "Week 3", utilization: 88 },
-    { week: "Week 4", utilization: 85 },
-    { week: "Week 5", utilization: 87 },
-    { week: "Week 6", utilization: 90 }
-  ];
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        // TODO: Replace with real auth token logic
+        const token = localStorage.getItem('token') || '';
+        const data = await getDashboard(token);
+        // Map backend data to frontend fields as needed
+        setSummaryStats({
+          billableCount: data.billable_count,
+          utilizationRate: data.utilization_rate,
+          avgBillingRate: data.avg_billing_rate,
+          monthlyRevenue: data.monthly_revenue,
+          productivityScore: data.productivity_score,
+        });
+        setUtilizationData(data.utilization_trend || []);
+        setClientAllocationData(data.client_allocation || []);
+        setProductivityData(data.productivity_trend || []);
+        setBillableResourcesList(data.billable_resources || []);
+      } catch (err: any) {
+        setError(err?.message || 'Failed to load data');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
 
-  const clientAllocationData = [
-    { client: "TechCorp", resources: 25, revenue: 450000 },
-    { client: "InnovateLabs", resources: 18, revenue: 320000 },
-    { client: "DataSys", resources: 15, revenue: 275000 },
-    { client: "CloudFlow", resources: 12, revenue: 195000 },
-    { client: "Others", resources: 19, revenue: 260000 }
-  ];
-
-  const productivityData = [
-    { month: "Jan", productivity: 88, allocation: 85 },
-    { month: "Feb", productivity: 90, allocation: 87 },
-    { month: "Mar", productivity: 89, allocation: 89 },
-    { month: "Apr", productivity: 92, allocation: 88 },
-    { month: "May", productivity: 91, allocation: 86 },
-    { month: "Jun", productivity: 94, allocation: 90 }
-  ];
-
-  const billableResourcesList = [
-    { name: "John Smith", designation: "Senior Engineer", client: "TechCorp", utilization: 95, billingRate: 85, productivity: 98 },
-    { name: "Sarah Johnson", designation: "Full Stack Developer", client: "InnovateLabs", utilization: 88, billingRate: 75, productivity: 92 },
-    { name: "Mike Chen", designation: "DevOps Engineer", client: "DataSys", utilization: 92, billingRate: 80, productivity: 95 },
-    { name: "Emily Davis", designation: "QA Engineer", client: "CloudFlow", utilization: 85, billingRate: 65, productivity: 89 },
-    { name: "Alex Wilson", designation: "Data Scientist", client: "TechCorp", utilization: 90, billingRate: 90, productivity: 94 }
-  ];
+  if (loading) return <div className="p-8 text-center">Loading...</div>;
+  if (error) return <div className="p-8 text-center text-red-500">{error}</div>;
 
   return (
     <div className="space-y-6">

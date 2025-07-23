@@ -19,20 +19,61 @@ import {
   Target
 } from "lucide-react";
 import { Employee } from "@/types/employee";
-import employeeData from "@/data/employeeResourceData.json";
+import { getEmployee } from "@/lib/api";
 
 const EmployeeProfile = () => {
   const { employeeId, filterType, filterValue } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const [employee, setEmployee] = useState<Employee | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Type assertion to ensure the data matches our Employee interface
-    const foundEmployee = (employeeData.employees as Employee[]).find(emp => emp.employee_id === employeeId);
-    setEmployee(foundEmployee || null);
+    const fetchEmployee = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const token = localStorage.getItem('token') || '';
+        const data = await getEmployee(token, employeeId!) as Employee;
+        setEmployee(data || null);
+      } catch (err: any) {
+        setError(err?.message || 'Failed to fetch employee');
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (employeeId) {
+      fetchEmployee();
+    }
   }, [employeeId]);
 
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <BreadcrumbNavigation />
+        <div className="text-center py-8">Loading employee profile...</div>
+      </div>
+    );
+  }
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <BreadcrumbNavigation />
+        <Card>
+          <CardContent className="text-center py-8">
+            <p className="text-red-500">{error}</p>
+            <Button 
+              onClick={() => navigate('/resource-management')} 
+              className="mt-4"
+            >
+              Back to Resource Management
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
   if (!employee) {
     return (
       <div className="space-y-6">
@@ -60,21 +101,35 @@ const EmployeeProfile = () => {
   };
 
   const getBenchDaysColor = (days: number) => {
-    if (days === 0) return 'default';
-    if (days <= 30) return 'secondary';
-    if (days <= 60) return 'destructive';
+    if (days === 0) {
+      return 'default';
+    }
+    if (days <= 30) {
+      return 'secondary';
+    }
+    if (days <= 60) {
+      return 'destructive';
+    }
     return 'destructive';
   };
 
   const getUtilizationColor = (percentage: number) => {
-    if (percentage >= 80) return 'text-green-600';
-    if (percentage >= 60) return 'text-yellow-600';
+    if (percentage >= 80) {
+      return 'text-green-600';
+    }
+    if (percentage >= 60) {
+      return 'text-yellow-600';
+    }
     return 'text-red-600';
   };
 
   const getProductivityColor = (score: number) => {
-    if (score >= 90) return 'text-green-600';
-    if (score >= 70) return 'text-yellow-600';
+    if (score >= 90) {
+      return 'text-green-600';
+    }
+    if (score >= 70) {
+      return 'text-yellow-600';
+    }
     return 'text-red-600';
   };
 

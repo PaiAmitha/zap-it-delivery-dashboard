@@ -1,4 +1,3 @@
-
 import { BreadcrumbNavigation } from "@/components/layout/BreadcrumbNavigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
@@ -11,10 +10,32 @@ import { ResignationsTab } from "@/components/resource-management/ResignationsTa
 import { InternManagementTab } from "@/components/resource-management/InternManagementTab";
 import { FinancialsTab } from "@/components/resource-management/FinancialsTab";
 import { useIsMobile } from "@/hooks/use-mobile";
-import locationsData from "@/data/locationsData.json";
+
+import { useEffect, useState } from "react";
+import { getLocations } from "@/lib/api";
 
 const ResourceManagement = () => {
   const isMobile = useIsMobile();
+  const [locations, setLocations] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchLocations = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const token = localStorage.getItem('token') || '';
+        const result = await getLocations(token);
+        setLocations(result.locations || []);
+      } catch (err: any) {
+        setError(err?.message || 'Failed to fetch locations');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchLocations();
+  }, []);
 
   return (
     <div className="min-h-screen bg-slate-50/50 animate-fade-in-up">
@@ -44,10 +65,13 @@ const ResourceManagement = () => {
                 <div className="mt-3 sm:mt-4 text-xs sm:text-sm text-blue-100/80">
                   <span className="font-medium">Available Locations:</span>
                   <span className="ml-2">
-                    {isMobile 
-                      ? `${locationsData.locationsList.slice(0, 3).join(" • ")}${locationsData.locationsList.length > 3 ? "..." : ""}`
-                      : locationsData.locationsList.join(" • ")
-                    }
+                    {loading && 'Loading...'}
+                    {error && <span className="text-red-200">{error}</span>}
+                    {!loading && !error && (
+                      isMobile
+                        ? `${locations.slice(0, 3).join(' • ')}${locations.length > 3 ? '...' : ''}`
+                        : locations.join(' • ')
+                    )}
                   </span>
                 </div>
               </div>

@@ -23,8 +23,8 @@ import {
   Award,
   DollarSign
 } from "lucide-react";
-import employeeData from "@/data/employeeData.json";
-import employeeResourceData from "@/data/employeeResourceData.json";
+import { getEmployee, getProjects } from "@/lib/api";
+import { Employee } from "@/types/employee";
 
 interface ResourceViewData {
   employeeId: string;
@@ -73,94 +73,134 @@ const ResourceView = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [editableResourceData, setEditableResourceData] = useState<ResourceData | null>(null);
   const [isResigned, setIsResigned] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [projects, setProjects] = useState<any[]>([]);
+  const [projectsLoading, setProjectsLoading] = useState(false);
+  const [projectsError, setProjectsError] = useState<string | null>(null);
 
-  // Sample upcoming engagements data
-  const upcomingEngagements = [
-    {
-      title: "Mobile Banking App v2.0",
-      role: "Lead Frontend Developer",
-      client: "TechBank Solutions",
-      duration: "6 months",
-      startDate: "2025-03-01",
-      endDate: "2025-08-30",
-      status: "Confirmed"
-    },
-    {
-      title: "E-commerce Platform Redesign",
-      role: "Senior UI/UX Developer",
-      client: "RetailCorp",
-      duration: "4 months",
-      startDate: "2025-04-15",
-      endDate: "2025-08-15",
-      status: "Pipeline"
-    }
-  ];
-
-  // Sample resigned employees data
-  const resignedEmployees = [
-    { empId: "EMP001", name: "John Doe" },
-    { empId: "EMP002", name: "Jane Smith" },
-    { empId: "EMP003", name: "Mike Johnson" },
-    { empId: "EMP004", name: "Sarah Wilson" },
-    { empId: "EMP005", name: "David Brown" }
-  ];
+  // Remove static upcoming engagements. Will fetch from backend if available.
 
   useEffect(() => {
-    // Check if the employee is resigned
-    const resignedEmployee = resignedEmployees.find(emp => emp.empId === resourceId);
-    if (resignedEmployee) {
-      setIsResigned(true);
-    }
-
-    // Find employee data from JSON file
-    const employee = employeeData.employees.find(emp => emp.employeeId === resourceId);
-    if (employee) {
-      setResourceData(employee);
-    }
-
-    // Find corresponding resource data for editing
-    const resourceEmployee = employeeResourceData.employees.find(emp => emp.employee_id === resourceId);
-    if (resourceEmployee) {
-      // Convert to ResourceData format
-      const convertedData: ResourceData = {
-        employeeId: resourceEmployee.employee_id,
-        fullName: resourceEmployee.full_name,
-        designation: resourceEmployee.designation,
-        department: resourceEmployee.department,
-        seniorityLevel: resourceEmployee.experience_level,
-        experience: resourceEmployee.years_of_experience,
-        location: resourceEmployee.location,
-        joiningDate: resourceEmployee.joining_date,
-        employmentType: resourceEmployee.resource_type,
-        reportingManager: "Jane Smith", // Default value
-        primarySkill: resourceEmployee.primary_skills[0] || "",
-        skillCategory: "Application Development", // Default value
-        billableStatus: resourceEmployee.status === "Billable",
-        currentEngagement: resourceEmployee.status === "Billable" ? "Client Project" : "Available",
-        projectName: resourceEmployee.status === "Billable" ? "Current Project" : undefined,
-        engagementDescription: resourceEmployee.status === "Billable" ? "Working on client project" : "Available for assignment",
-        engagementStartDate: resourceEmployee.bench_start_date ? undefined : "2025-01-01",
-        engagementEndDate: resourceEmployee.bench_start_date ? undefined : "2025-12-31",
-        agingInNonBillable: resourceEmployee.bench_days || 0,
-        currentBenchStatus: resourceEmployee.status !== "Billable",
-        engagementDetail: resourceEmployee.status === "Billable" ? "Active Project Work" : "Training/Available",
-        isIntern: false,
-        internshipStartDate: undefined,
-        internshipEndDate: undefined,
-        assignedProject: undefined,
-        mentorName: undefined,
-        stipend: undefined,
-        monthlySalaryCost: resourceEmployee.cost_rate,
-        billingRate: resourceEmployee.billing_rate || undefined,
-        monthlyRevenueGenerated: resourceEmployee.billing_rate || 0,
-        costCenter: resourceEmployee.department,
-        totalYTDCost: resourceEmployee.cost_rate * 12,
-        totalYTDRevenue: (resourceEmployee.billing_rate || 0) * 12
-      };
-      setEditableResourceData(convertedData);
+    const fetchResource = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const token = localStorage.getItem('token') || '';
+        const data = await getEmployee(token, resourceId!) as Employee;
+        if (data) {
+          setResourceData({
+            employeeId: data.employee_id,
+            fullName: data.full_name,
+            designation: data.designation,
+            department: data.department,
+            location: data.location,
+            experience: data.experience_level,
+            email: data.email,
+            phone: (data as any).phone || '',
+            joinedDate: data.joining_date,
+            billableStatus: data.status === 'Billable',
+            utilizationRate: data.utilization_percentage,
+            projectSuccessRate: 0, // Placeholder, update if available
+            performanceRating: 0, // Placeholder, update if available
+            skills: data.primary_skills,
+            upcomingEngagements: [], // Placeholder, update if available
+            currentProjects: [], // Placeholder, update if available
+            performanceFeedback: {
+              reviewer: '',
+              date: '',
+              rating: 0,
+              comment: '',
+              strengths: [],
+              improvements: [],
+              goals: [],
+            },
+          });
+          setEditableResourceData({
+            employeeId: data.employee_id,
+            fullName: data.full_name,
+            designation: data.designation,
+            department: data.department,
+            seniorityLevel: data.experience_level,
+            experience: data.years_of_experience,
+            location: data.location,
+            joiningDate: data.joining_date,
+            employmentType: data.resource_type,
+            reportingManager: (data as any).reporting_manager || '',
+            primarySkill: data.primary_skills[0] || '',
+            skillCategory: 'Application Development', // Placeholder
+            billableStatus: data.status === 'Billable',
+            currentEngagement: data.status === 'Billable' ? 'Client Project' : 'Available',
+            projectName: data.status === 'Billable' ? 'Current Project' : undefined,
+            engagementDescription: data.status === 'Billable' ? 'Working on client project' : 'Available for assignment',
+            engagementStartDate: data.bench_start_date ? undefined : '2025-01-01',
+            engagementEndDate: data.bench_start_date ? undefined : '2025-12-31',
+            agingInNonBillable: data.bench_days || 0,
+            currentBenchStatus: data.status !== 'Billable',
+            engagementDetail: data.status === 'Billable' ? 'Active Project Work' : 'Training/Available',
+            isIntern: false,
+            internshipStartDate: undefined,
+            internshipEndDate: undefined,
+            assignedProject: undefined,
+            mentorName: undefined,
+            stipend: undefined,
+            monthlySalaryCost: data.cost_rate,
+            billingRate: data.billing_rate || undefined,
+            monthlyRevenueGenerated: data.billing_rate || 0,
+            costCenter: data.department,
+            totalYTDCost: data.cost_rate * 12,
+            totalYTDRevenue: (data.billing_rate || 0) * 12,
+          });
+        }
+      } catch (err: any) {
+        setError(err?.message || 'Failed to fetch resource');
+      } finally {
+        setLoading(false);
+      }
+    };
+    const fetchProjects = async () => {
+      setProjectsLoading(true);
+      setProjectsError(null);
+      try {
+        const token = localStorage.getItem('token') || '';
+        // Assuming backend supports filtering projects by employeeId
+        const result = await getProjects(token, { employeeId: resourceId }) as { projects?: any[] } | any[];
+        if (Array.isArray(result)) {
+          setProjects(result);
+        } else if (result && Array.isArray(result.projects)) {
+          setProjects(result.projects);
+        } else {
+          setProjects([]);
+        }
+      } catch (err: any) {
+        setProjectsError(err?.message || 'Failed to fetch projects');
+      } finally {
+        setProjectsLoading(false);
+      }
+    };
+    if (resourceId) {
+      fetchResource();
+      fetchProjects();
     }
   }, [resourceId]);
+// ...existing code...
 
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <BreadcrumbNavigation />
+        <div className="text-center">Loading resource...</div>
+      </div>
+    );
+  }
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <BreadcrumbNavigation />
+        <div className="text-center text-red-500">{error}</div>
+      </div>
+    );
+  }
   if (!resourceData) {
     return (
       <div className="space-y-6">
@@ -408,7 +448,7 @@ const ResourceView = () => {
 
         {/* Right Column */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Current Projects */}
+          {/* Current Projects (from backend) */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -417,36 +457,41 @@ const ResourceView = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {resourceData.currentProjects.map((project, index) => (
-                <div key={index} className="border rounded-lg p-4">
+              {projectsLoading && <div>Loading projects...</div>}
+              {projectsError && <div className="text-red-500">{projectsError}</div>}
+              {!projectsLoading && !projectsError && projects.length === 0 && (
+                <div>No current projects assigned.</div>
+              )}
+              {!projectsLoading && !projectsError && projects.map((project, index) => (
+                <div key={project.id || index} className="border rounded-lg p-4">
                   <div className="flex justify-between items-start mb-2">
-                    <h4 className="font-semibold">{project.title}</h4>
+                    <h4 className="font-semibold">{project.name}</h4>
                     <Badge variant="default" className="bg-green-600">
-                      On Track
+                      {project.healthStatus || 'On Track'}
                     </Badge>
                   </div>
-                  <p className="text-sm text-gray-600">{project.client}</p>
-                  <p className="text-sm text-gray-600">{project.role}</p>
+                  <p className="text-sm text-gray-600">{project.customer}</p>
+                  <p className="text-sm text-gray-600">{project.category}</p>
                   <div className="flex justify-between items-center mt-3">
                     <div>
                       <p className="text-xs text-gray-500">Started</p>
-                      <p className="text-sm font-medium">{project.started}</p>
+                      <p className="text-sm font-medium">{project.start_date || '-'}</p>
                     </div>
                     <div>
                       <p className="text-xs text-gray-500">End Date</p>
-                      <p className="text-sm font-medium">2024-06-30</p>
+                      <p className="text-sm font-medium">{project.end_date || '-'}</p>
                     </div>
                   </div>
                   <div className="mt-3">
                     <div className="flex justify-between text-sm mb-1">
                       <span>Progress</span>
-                      <span>75%</span>
+                      <span>{project.progress || 0}%</span>
                     </div>
-                    <Progress value={75} className="h-2" />
+                    <Progress value={project.progress || 0} className="h-2" />
                   </div>
                   <div className="mt-2">
-                    <p className="text-xs text-gray-500">Billable Hours</p>
-                    <p className="text-sm font-medium">320h</p>
+                    <p className="text-xs text-gray-500">Team Size</p>
+                    <p className="text-sm font-medium">{project.teamSize || '-'}</p>
                   </div>
                 </div>
               ))}
@@ -514,8 +559,8 @@ const ResourceView = () => {
             </CardContent>
           </Card>
 
-          {/* Upcoming Engagements */}
-          <UpcomingEngagementsCard engagements={upcomingEngagements} />
+          {/* Upcoming Engagements (if available from backend, else skip) */}
+          {/* You can add a similar fetch for upcoming engagements if backend supports it */}
         </div>
       </div>
 

@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { login } from "@/lib/api";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -16,54 +17,38 @@ const Login = () => {
   const { toast } = useToast();
   const isMobile = useIsMobile();
 
-  // Updated credentials with new roles and users
-  const validCredentials = [
-    { email: "hr@zapcg.com", password: "hr123", role: "hr", name: "Kratibha Gangwar" },
-    { email: "manager@zapcg.com", password: "manager123", role: "manager", name: "Deepthi Nagam L" },
-    { email: "ceo@zapcg.com", password: "Leadership@123", role: "leadership", name: "Kishore Pallamreddy" },
-    { email: "cio@zapcg.com", password: "Leadership@123", role: "leadership", name: "Sai Konda" },
-    { email: "cto@zapcg.com", password: "Leadership@123", role: "leadership", name: "Prasanth Nair" },
-    { email: "santhanakrishnan.b@zapcg.com", password: "EM123", role: "engineering_manager", name: "Santhanakrishnan B" },
-    { email: "anurag.mahanto@zapcg.com", password: "EM123", role: "engineering_manager", name: "Anurag Mahanto" },
-    { email: "sushama.mohandasan@zapcg.com", password: "Finance123", role: "finance", name: "Sushama Mohandasan" },
-  ];
+
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-
-    // Simulate loading delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    // Validate credentials
-    const validUser = validCredentials.find(
-      cred => cred.email === email && cred.password === password
-    );
-
-    if (validUser) {
-      // Store user info in localStorage (frontend only)
-      localStorage.setItem("user", JSON.stringify({
-        email: validUser.email,
-        name: validUser.name,
-        role: validUser.role,
-        isAuthenticated: true
-      }));
-
-      toast({
-        title: "Login Successful",
-        description: `Welcome back, ${validUser.name}!`,
-      });
-
-      navigate("/");
-    } else {
+    try {
+      const result = await login(email, password);
+      if (result && result.token && result.user) {
+        localStorage.setItem("token", result.token);
+        localStorage.setItem("user", JSON.stringify({
+          email: result.user.email,
+          name: result.user.name,
+          role: result.user.role,
+          isAuthenticated: true
+        }));
+        toast({
+          title: "Login Successful",
+          description: `Welcome back, ${result.user.name}!`,
+        });
+        navigate("/");
+      } else {
+        throw new Error("Invalid login response");
+      }
+    } catch (err: any) {
       toast({
         title: "Login Failed",
-        description: "Invalid email or password. Please try again.",
+        description: err?.message || "Invalid email or password. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
-
-    setIsLoading(false);
   };
 
   return (

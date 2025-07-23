@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { getFinance } from "@/lib/api";
 import { BreadcrumbNavigation } from "@/components/layout/BreadcrumbNavigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -20,7 +21,7 @@ import { FinancialKPISection } from "@/components/finance/FinancialKPISection";
 import { ProjectTypeAnalysis } from "@/components/finance/ProjectTypeAnalysis";
 import { EnhancedKPICard } from "@/components/dashboard/EnhancedKPICard";
 import { Employee } from "@/types/employee";
-import employeeData from "@/data/employeeResourceData.json";
+
 
 interface ProjectFinancials {
   projectId: string;
@@ -51,94 +52,36 @@ interface ProjectFinancials {
 const FinanceDashboard = () => {
   const [selectedTimeframe, setSelectedTimeframe] = useState("YTD");
 
-  // Mock project financial data based on employee data
-  const projectFinancials: ProjectFinancials[] = [
-    {
-      projectId: "P001",
-      projectName: "E-commerce Platform",
-      projectType: "Fixed Price",
-      client: "TechCorp Inc",
-      sowValue: 850000,
-      billingRate: "Fixed Bid",
-      startDate: "2024-01-15",
-      endDate: "2024-08-30",
-      actualCostToDate: 320000,
-      billableResources: 4,
-      nonBillableResources: 1,
-      shadowResources: 1,
-      monthlyBurn: 43500,
-      projectedCompletion: "2024-08-30",
-      netPosition: 530000,
-      healthStatus: "Positive",
-      profitMargin: 62.4,
-      utilizationRate: 85,
-      resourceCosts: {
-        billableCost: 43500,
-        nonBillableCost: 6000,
-        shadowCost: 0
-      }
-    },
-    {
-      projectId: "P002", 
-      projectName: "Quality Assurance Enhancement",
-      projectType: "T&M",
-      client: "Internal",
-      sowValue: 180000,
-      billingRate: "$0/hr",
-      startDate: "2024-05-16",
-      endDate: "2024-12-31",
-      actualCostToDate: 45000,
-      billableResources: 0,
-      nonBillableResources: 2,
-      shadowResources: 0,
-      monthlyBurn: 11000,
-      projectedCompletion: "2024-12-31",
-      netPosition: -135000,
-      healthStatus: "Negative",
-      profitMargin: -75.0,
-      utilizationRate: 0,
-      resourceCosts: {
-        billableCost: 0,
-        nonBillableCost: 11000,
-        shadowCost: 0
-      }
-    },
-    {
-      projectId: "P003",
-      projectName: "Design & Analytics Platform",
-      projectType: "T&M",
-      client: "DesignTech Solutions",
-      sowValue: 450000,
-      billingRate: "$95/hr",
-      startDate: "2024-06-21",
-      endDate: "2024-11-30",
-      actualCostToDate: 85000,
-      billableResources: 0,
-      nonBillableResources: 2,
-      shadowResources: 0,
-      monthlyBurn: 17500,
-      projectedCompletion: "2024-11-30",
-      netPosition: 365000,
-      healthStatus: "Critical",
-      profitMargin: 81.1,
-      utilizationRate: 60,
-      resourceCosts: {
-        billableCost: 0,
-        nonBillableCost: 17500,
-        shadowCost: 0
-      }
-    }
-  ];
 
-  // Calculate bench costs from non-billable employees with proper typing
-  const benchEmployees: Employee[] = employeeData.employees
-    .filter(emp => emp.status === "Non-Billable")
-    .map(emp => ({
-      ...emp,
-      status: emp.status as "Billable" | "Non-Billable"
-    }));
-  
-  const totalBenchCost = benchEmployees.reduce((sum, emp) => sum + emp.cost_rate, 0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [projectFinancials, setProjectFinancials] = useState<ProjectFinancials[]>([]);
+  const [benchEmployees, setBenchEmployees] = useState<Employee[]>([]);
+  const [totalBenchCost, setTotalBenchCost] = useState<number>(0);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        // TODO: Replace with real auth token logic
+        const token = localStorage.getItem('token') || '';
+        const data = await getFinance(token);
+        setProjectFinancials(data.projectFinancials || []);
+        setBenchEmployees(data.benchEmployees || []);
+        setTotalBenchCost(data.totalBenchCost || 0);
+      } catch (err: any) {
+        setError(err?.message || 'Failed to load financial data');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  if (loading) return <div className="p-8 text-center">Loading...</div>;
+  if (error) return <div className="p-8 text-center text-red-500">{error}</div>;
+
 
   // Financial KPIs
   const totalSOWValue = projectFinancials.reduce((sum, p) => sum + p.sowValue, 0);

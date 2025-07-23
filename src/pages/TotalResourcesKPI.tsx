@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { getDashboard, DashboardData } from "@/lib/api";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
 import { EnhancedKPICard } from "@/components/dashboard/EnhancedKPICard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,43 +24,46 @@ const TotalResourcesKPI = () => {
     billableStatus: "All"
   });
 
-  // Sample data with billable status
-  const allResourcesData = {
-    total: 142,
-    active: 134,
-    inactive: 8,
-    monthlyGrowth: 2.5,
-    billable: 95,
-    nonBillable: 47
-  };
 
-  const allDepartmentData = [
-    { name: "Engineering", count: 68, percentage: 47.9, billable: 45, nonBillable: 23 },
-    { name: "QA", count: 24, percentage: 16.9, billable: 18, nonBillable: 6 },
-    { name: "DevOps", count: 18, percentage: 12.7, billable: 12, nonBillable: 6 },
-    { name: "Data Science", count: 12, percentage: 8.5, billable: 8, nonBillable: 4 },
-    { name: "Product", count: 10, percentage: 7.0, billable: 7, nonBillable: 3 },
-    { name: "Design", count: 6, percentage: 4.2, billable: 3, nonBillable: 3 },
-    { name: "Others", count: 4, percentage: 2.8, billable: 2, nonBillable: 2 }
-  ];
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [allResourcesData, setAllResourcesData] = useState<any>(null);
+  const [allDepartmentData, setAllDepartmentData] = useState<any[]>([]);
+  const [allDesignationData, setAllDesignationData] = useState<any[]>([]);
+  const [allLocationData, setAllLocationData] = useState<any[]>([]);
+  const [monthlyGrowthData, setMonthlyGrowthData] = useState<any[]>([]);
 
-  const allDesignationData = [
-    { name: "Senior Engineer", count: 35, percentage: 24.6, billable: 28, nonBillable: 7 },
-    { name: "Software Engineer", count: 28, percentage: 19.7, billable: 22, nonBillable: 6 },
-    { name: "Junior Engineer", count: 22, percentage: 15.5, billable: 15, nonBillable: 7 },
-    { name: "QA Engineer", count: 18, percentage: 12.7, billable: 14, nonBillable: 4 },
-    { name: "DevOps Engineer", count: 12, percentage: 8.5, billable: 8, nonBillable: 4 },
-    { name: "Data Scientist", count: 10, percentage: 7.0, billable: 6, nonBillable: 4 },
-    { name: "Others", count: 17, percentage: 12.0, billable: 2, nonBillable: 15 }
-  ];
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        // TODO: Replace with real auth token logic
+        const token = localStorage.getItem('token') || '';
+        const data = await getDashboard(token);
+        setAllResourcesData({
+          total: data.total_resources,
+          active: data.active_resources,
+          inactive: data.inactive_resources,
+          monthlyGrowth: data.monthly_growth,
+          billable: data.billable_resources_count,
+          nonBillable: data.non_billable_resources_count,
+        });
+        setAllDepartmentData(data.department_data || []);
+        setAllDesignationData(data.designation_data || []);
+        setAllLocationData(data.location_data || []);
+        setMonthlyGrowthData(data.monthly_growth_data || []);
+      } catch (err: any) {
+        setError(err?.message || 'Failed to load data');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
 
-  const allLocationData = [
-    { name: "Bangalore", count: 58, percentage: 40.8, billable: 38, nonBillable: 20 },
-    { name: "Hyderabad", count: 34, percentage: 23.9, billable: 23, nonBillable: 11 },
-    { name: "Mumbai", count: 28, percentage: 19.7, billable: 19, nonBillable: 9 },
-    { name: "Chennai", count: 15, percentage: 10.6, billable: 10, nonBillable: 5 },
-    { name: "Pune", count: 7, percentage: 4.9, billable: 5, nonBillable: 2 }
-  ];
+  if (loading) return <div className="p-8 text-center">Loading...</div>;
+  if (error) return <div className="p-8 text-center text-red-500">{error}</div>;
 
   const getFilteredData = (data: any[], billableFilter: string) => {
     if (billableFilter === "Billable") {
@@ -102,14 +106,7 @@ const TotalResourcesKPI = () => {
   const locationData = getFilteredData(allLocationData, selectedFilters.billableStatus);
   const summaryStats = getSummaryStats(selectedFilters.billableStatus);
 
-  const monthlyGrowthData = [
-    { month: "Jan", count: 132 },
-    { month: "Feb", count: 135 },
-    { month: "Mar", count: 138 },
-    { month: "Apr", count: 140 },
-    { month: "May", count: 141 },
-    { month: "Jun", count: 142 }
-  ];
+  // monthlyGrowthData now comes from backend
 
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D', '#FFC658'];
 

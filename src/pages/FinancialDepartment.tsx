@@ -5,7 +5,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DollarSign, TrendingUp, TrendingDown, CreditCard, Users, Building, AlertTriangle, CheckCircle } from "lucide-react";
 import { useRealtimeData } from "@/hooks/useRealtimeData";
 import { useGlobalDate } from "@/contexts/GlobalDateContext";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { getFinance } from "@/lib/api";
 
 const FinancialDepartment = () => {
   const { selectedDateRange } = useGlobalDate();
@@ -26,71 +27,33 @@ const FinancialDepartment = () => {
     }
   }, [selectedDateRange]);
 
-  const projectFinancials = [
-    {
-      projectId: "P001",
-      projectName: "Enterprise ERP System",
-      projectType: "Fixed Price",
-      sowValue: 850000,
-      billingRate: "T&M",
-      startDate: "2024-01-15",
-      actualCostToDate: 320000,
-      billableResources: 8,
-      nonBillableResources: 2,
-      shadowResources: 1,
-      monthlyBurn: 65000,
-      projectedCompletion: "2024-08-30",
-      healthStatus: "Positive",
-      profitMargin: 15.2,
-      utilizationRate: 85
-    },
-    {
-      projectId: "P002", 
-      projectName: "Mobile Banking App",
-      projectType: "T&M",
-      sowValue: 450000,
-      billingRate: "$120/hr",
-      startDate: "2024-02-01",
-      actualCostToDate: 180000,
-      billableResources: 5,
-      nonBillableResources: 1,
-      shadowResources: 0,
-      monthlyBurn: 38000,
-      projectedCompletion: "2024-07-15",
-      healthStatus: "Negative",
-      profitMargin: -5.8,
-      utilizationRate: 78
-    },
-    {
-      projectId: "P003",
-      projectName: "Data Analytics Platform",
-      projectType: "Fixed Price",
-      sowValue: 650000,
-      billingRate: "Milestone",
-      startDate: "2024-03-01",
-      actualCostToDate: 95000,
-      billableResources: 6,
-      nonBillableResources: 1,
-      shadowResources: 2,
-      monthlyBurn: 42000,
-      projectedCompletion: "2024-11-30",
-      healthStatus: "Positive", 
-      profitMargin: 22.1,
-      utilizationRate: 92
-    }
-  ];
 
-  const benchResources = {
-    totalBenchResources: 12,
-    monthlyCost: 84000,
-    skillBreakdown: [
-      { skill: "Senior Developers", count: 3, monthlyCost: 24000 },
-      { skill: "UI/UX Designers", count: 2, monthlyCost: 14000 },
-      { skill: "QA Engineers", count: 4, monthlyCost: 22000 },
-      { skill: "DevOps Engineers", count: 2, monthlyCost: 16000 },
-      { skill: "Project Managers", count: 1, monthlyCost: 8000 }
-    ]
-  };
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [projectFinancials, setProjectFinancials] = useState<any[]>([]);
+  const [benchResources, setBenchResources] = useState<any>({ totalBenchResources: 0, monthlyCost: 0, skillBreakdown: [] });
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        // TODO: Replace with real auth token logic
+        const token = localStorage.getItem('token') || '';
+        const data = await getFinance(token);
+        setProjectFinancials(data.departmentProjectFinancials || []);
+        setBenchResources(data.departmentBenchResources || { totalBenchResources: 0, monthlyCost: 0, skillBreakdown: [] });
+      } catch (err: any) {
+        setError(err?.message || 'Failed to load department financial data');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  if (loading) return <div className="p-8 text-center">Loading...</div>;
+  if (error) return <div className="p-8 text-center text-red-500">{error}</div>;
 
   const formatCurrency = (amount: number) => `$${amount.toLocaleString()}`;
   const formatPercentage = (value: number) => `${value.toFixed(1)}%`;

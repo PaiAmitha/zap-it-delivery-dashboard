@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { getDashboard, DashboardData } from "@/lib/api";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,98 +16,48 @@ import { Filter, GraduationCap, TrendingUp, Users, Heart } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, FunnelChart, Funnel, Cell } from 'recharts';
 
 const InternsKPI = () => {
-  const summaryStats = {
-    totalInterns: 8,
-    assigned: 6,
-    unassigned: 2,
-    conversionRate: 75,
-    avgLearningHours: 120,
-    avgProductiveHours: 80
-  };
 
-  const conversionFunnelData = [
-    { name: "Applications", value: 50, fill: "#8884d8" },
-    { name: "Interviewed", value: 20, fill: "#83a6ed" },
-    { name: "Selected", value: 12, fill: "#8dd1e1" },
-    { name: "Completed", value: 8, fill: "#82ca9d" },
-    { name: "Converted", value: 6, fill: "#a4de6c" }
-  ];
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [summaryStats, setSummaryStats] = useState<any>(null);
+  const [conversionFunnelData, setConversionFunnelData] = useState<any[]>([]);
+  const [monthlyConversionData, setMonthlyConversionData] = useState<any[]>([]);
+  const [learningVsProductiveData, setLearningVsProductiveData] = useState<any[]>([]);
+  const [locationDistribution, setLocationDistribution] = useState<any[]>([]);
+  const [internDetailsList, setInternDetailsList] = useState<any[]>([]);
 
-  const monthlyConversionData = [
-    { month: "Jan", conversionRate: 70 },
-    { month: "Feb", conversionRate: 72 },
-    { month: "Mar", conversionRate: 68 },
-    { month: "Apr", conversionRate: 75 },
-    { month: "May", conversionRate: 78 },
-    { month: "Jun", conversionRate: 75 }
-  ];
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        // TODO: Replace with real auth token logic
+        const token = localStorage.getItem('token') || '';
+        const data = await getDashboard(token);
+        setSummaryStats({
+          totalInterns: data.total_interns,
+          assigned: data.interns_assigned,
+          unassigned: data.interns_unassigned,
+          conversionRate: data.intern_conversion_rate,
+          avgLearningHours: data.avg_learning_hours,
+          avgProductiveHours: data.avg_productive_hours,
+        });
+        setConversionFunnelData(data.intern_conversion_funnel || []);
+        setMonthlyConversionData(data.intern_monthly_conversion || []);
+        setLearningVsProductiveData(data.intern_learning_vs_productive || []);
+        setLocationDistribution(data.intern_location_distribution || []);
+        setInternDetailsList(data.intern_details_list || []);
+      } catch (err: any) {
+        setError(err?.message || 'Failed to load data');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
 
-  const learningVsProductiveData = [
-    { intern: "Sarah J.", learning: 140, productive: 85 },
-    { intern: "Mike C.", learning: 125, productive: 95 },
-    { intern: "Emily D.", learning: 110, productive: 70 },
-    { intern: "Alex W.", learning: 135, productive: 80 },
-    { intern: "Lisa M.", learning: 115, productive: 75 },
-    { intern: "Tom K.", learning: 130, productive: 90 }
-  ];
-
-  const locationDistribution = [
-    { location: "Bangalore", count: 4 },
-    { location: "Hyderabad", count: 2 },
-    { location: "Mumbai", count: 1 },
-    { location: "Chennai", count: 1 }
-  ];
-
-  const internDetailsList = [
-    { 
-      name: "Sarah Johnson", 
-      designation: "SDE Intern", 
-      project: "Internal QA Tool", 
-      mentor: "John Smith", 
-      status: "Assigned", 
-      department: "QA",
-      learningHours: 140,
-      productiveHours: 85,
-      feedback: "Excellent progress",
-      conversionPotential: "High"
-    },
-    { 
-      name: "Mike Chen", 
-      designation: "DevOps Intern", 
-      project: "CI/CD Pipeline", 
-      mentor: "Lisa Wong", 
-      status: "Assigned", 
-      department: "DevOps",
-      learningHours: 125,
-      productiveHours: 95,
-      feedback: "Strong technical skills",
-      conversionPotential: "High"
-    },
-    { 
-      name: "Emily Davis", 
-      designation: "Frontend Intern", 
-      project: "Dashboard Redesign", 
-      mentor: "Tom Wilson", 
-      status: "Assigned", 
-      department: "Engineering",
-      learningHours: 110,
-      productiveHours: 70,
-      feedback: "Good learning attitude",
-      conversionPotential: "Medium"
-    },
-    { 
-      name: "Alex Wilson", 
-      designation: "Backend Intern", 
-      project: "Unassigned", 
-      mentor: "N/A", 
-      status: "Unassigned", 
-      department: "Engineering",
-      learningHours: 135,
-      productiveHours: 80,
-      feedback: "Awaiting project assignment",
-      conversionPotential: "High"
-    }
-  ];
+  if (loading) return <div className="p-8 text-center">Loading...</div>;
+  if (error) return <div className="p-8 text-center text-red-500">{error}</div>;
 
   const getStatusColor = (status: string) => {
     switch (status) {

@@ -8,7 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
 import { UserHoverCard } from "@/components/ui/user-hover-card";
 import { Building, User, Calendar, Clock, FileText, AlertCircle, CheckCircle, XCircle, Timer } from "lucide-react";
-import dashboardData from "@/data/dashboardData.json";
+import { getEscalations } from "@/lib/api";
 
 interface Escalation {
   id: string;
@@ -26,12 +26,60 @@ interface Escalation {
 const EscalationDetails = () => {
   const { id } = useParams();
   const [escalation, setEscalation] = useState<Escalation | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const foundEscalation = dashboardData.escalations.find(esc => esc.id === id);
-    setEscalation(foundEscalation || null);
+    const fetchEscalation = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const token = localStorage.getItem('token') || '';
+        const result = await getEscalations(token, { id });
+        let found: Escalation | null = null;
+        // Normalize id for comparison (string/number)
+        const idStr = String(id);
+        if (Array.isArray(result)) {
+          found = result.find((esc: Escalation) => String(esc.id) === idStr) || null;
+        } else if (result && Array.isArray((result as { escalations?: Escalation[] }).escalations)) {
+          found = ((result as { escalations: Escalation[] }).escalations).find((esc: Escalation) => String(esc.id) === idStr) || null;
+        } else if (result && (result as Escalation).id && String((result as Escalation).id) === idStr) {
+          found = result as Escalation;
+        }
+        setEscalation(found);
+      } catch (err: any) {
+        setError(err?.message || 'Failed to fetch escalation');
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (id) {
+      fetchEscalation();
+    }
   }, [id]);
 
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <Breadcrumb />
+        <div className="text-center py-12">Loading escalation details...</div>
+      </div>
+    );
+  }
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <Breadcrumb />
+        <Card>
+          <CardContent className="text-center py-12">
+            <XCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h2 className="text-xl font-semibold text-red-500">{error}</h2>
+            <p className="text-sm text-muted-foreground mt-2">The requested escalation could not be loaded.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
   if (!escalation) {
     return (
       <div className="space-y-6">

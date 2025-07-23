@@ -15,6 +15,7 @@ import { AddSprintDataModal } from "@/components/dashboard/AddSprintDataModal";
 import { EditProjectModal } from "@/components/dashboard/EditProjectModal";
 import { DeliveryMetricsFilter } from "@/components/dashboard/DeliveryMetricsFilter";
 import { TeamMemberCard } from "@/components/dashboard/TeamMemberCard";
+import { getProjects } from "@/lib/api";
 
 const ProjectDetails = () => {
   const { projectId } = useParams();
@@ -23,181 +24,43 @@ const ProjectDetails = () => {
   const [isEditProjectModalOpen, setIsEditProjectModalOpen] = useState(false);
   const [selectedDeliveryFilter, setSelectedDeliveryFilter] = useState("average");
 
-  // Enhanced project data from dummy JSON
-  const projectData = {
-    "1": {
-      name: "E-Commerce Platform",
-      customer: "TechCorp",
-      status: "On Track",
-      progress: 65,
-      description: "Customer engagement platform",
-      startDate: "2024-01-15",
-      endDate: "2024-06-30",
-      teamSize: 8,
-      currentStage: "Development",
-      healthStatus: "Green",
-      onTimePercentage: 85
-    },
-    "2": {
-      name: "Customer Integration",
-      customer: "Zenmate",
-      status: "At Risk",
-      progress: 45,
-      description: "Backend services integration",
-      startDate: "2024-02-01",
-      endDate: "2024-07-15",
-      teamSize: 6,
-      currentStage: "Testing",
-      healthStatus: "Amber",
-      onTimePercentage: 72
-    },
-    "3": {
-      name: "Mobile Banking App",
-      customer: "FinanceFirst Bank",
-      status: "On Track",
-      progress: 80,
-      description: "Customer payments platform",
-      startDate: "2024-01-10",
-      endDate: "2024-05-20",
-      teamSize: 12,
-      currentStage: "UAT",
-      healthStatus: "Green",
-      onTimePercentage: 92
-    },
-    "4": {
-      name: "Blockchain Analytics",
-      customer: "CryptoTech",
-      status: "Critical",
-      progress: 35,
-      description: "Analytics dashboard",
-      startDate: "2024-03-01",
-      endDate: "2024-08-15",
-      teamSize: 10,
-      currentStage: "Development",
-      healthStatus: "Critical",
-      onTimePercentage: 58
-    },
-    "5": {
-      name: "Healthcare Portal",
-      customer: "MedLife Systems",
-      status: "At Risk",
-      progress: 55,
-      description: "Community trust portal",
-      startDate: "2024-02-15",
-      endDate: "2024-07-30",
-      teamSize: 15,
-      currentStage: "Testing",
-      healthStatus: "Amber",
-      onTimePercentage: 68
-    },
-    "6": {
-      name: "IoT Dashboard",
-      customer: "SmartHome Inc",
-      status: "On Track",
-      progress: 70,
-      description: "Customer control platform",
-      startDate: "2024-01-20",
-      endDate: "2024-06-10",
-      teamSize: 7,
-      currentStage: "Development",
-      healthStatus: "Green",
-      onTimePercentage: 88
+
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [project, setProject] = useState<any>(null);
+  const [teamMembers, setTeamMembers] = useState<any[]>([]);
+  const [sprintMetricsData, setSprintMetricsData] = useState<any>({});
+  const [milestones, setMilestones] = useState<any[]>([]);
+  const [risks, setRisks] = useState<any[]>([]);
+  const [engineeringMetrics, setEngineeringMetrics] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const token = localStorage.getItem('token') || '';
+        const data = await getProjects(token, { id: projectId }) as { projects?: any[] } | any[];
+        const projectData = Array.isArray(data) ? data[0] : (data.projects ? data.projects[0] : data);
+        setProject(projectData || null);
+        setTeamMembers(projectData?.teamMembers || []);
+        setSprintMetricsData(projectData?.sprintMetricsData || {});
+        setMilestones(projectData?.milestones || []);
+        setRisks(projectData?.risks || []);
+        setEngineeringMetrics(projectData?.engineeringMetrics || null);
+      } catch (err: any) {
+        setError(err?.message || 'Failed to load project details');
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (projectId) {
+      fetchData();
     }
-  };
+  }, [projectId]);
 
-  const project = projectData[projectId as keyof typeof projectData];
-
-  // Enhanced team members with additional info
-  const teamMembers = [
-    { 
-      name: "Sarah Johnson", 
-      role: "Delivery Manager", 
-      allocation: "100%", 
-      status: "Active",
-      email: "sarah.johnson@company.com",
-      department: "Project Management",
-      location: "New York"
-    },
-    { 
-      name: "Mike Chen", 
-      role: "Scrum Master", 
-      allocation: "100%", 
-      status: "Active",
-      email: "mike.chen@company.com",
-      department: "Engineering",
-      location: "San Francisco"
-    },
-    { 
-      name: "Alex Rodriguez", 
-      role: "Tech Lead", 
-      allocation: "100%", 
-      status: "Active",
-      email: "alex.rodriguez@company.com",
-      department: "Engineering",
-      location: "Austin"
-    },
-    { 
-      name: "Emily Davis", 
-      role: "Senior Developer", 
-      allocation: "100%", 
-      status: "Active",
-      email: "emily.davis@company.com",
-      department: "Engineering",
-      location: "Remote"
-    },
-    { 
-      name: "James Wilson", 
-      role: "Senior Developer", 
-      allocation: "100%", 
-      status: "Active",
-      email: "james.wilson@company.com",
-      department: "Engineering",
-      location: "Seattle"
-    }
-  ];
-
-  // Sprint-wise delivery metrics data
-  const sprintMetricsData = {
-    'sprint-1': { sprintVelocity: 35, predictability: 82, defectLeakage: 5, onTimeDelivery: 85 },
-    'sprint-2': { sprintVelocity: 38, predictability: 85, defectLeakage: 4, onTimeDelivery: 88 },
-    'sprint-3': { sprintVelocity: 41, predictability: 87, defectLeakage: 3, onTimeDelivery: 90 },
-    'sprint-4': { sprintVelocity: 43, predictability: 89, defectLeakage: 2, onTimeDelivery: 93 },
-    'sprint-5': { sprintVelocity: 45, predictability: 91, defectLeakage: 1, onTimeDelivery: 95 },
-    'average': { sprintVelocity: 42, predictability: 87, defectLeakage: 3, onTimeDelivery: 92 }
-  };
-
-  // Get current delivery metrics based on selected filter
-  const getCurrentDeliveryMetrics = () => {
-    return sprintMetricsData[selectedDeliveryFilter as keyof typeof sprintMetricsData] || sprintMetricsData.average;
-  };
-
-  const deliveryMetrics = getCurrentDeliveryMetrics();
-
-  // Milestone Status
-  const milestones = [
-    { name: "MVP Release", progress: 100, status: "completed", date: "3/15/2024" },
-    { name: "Beta Testing", progress: 75, status: "on track", date: "4/30/2024" },
-    { name: "User Acceptance", progress: 45, status: "on track", date: "5/15/2024" },
-    { name: "Production Release", progress: 20, status: "at risk", date: "6/30/2024" }
-  ];
-
-  // Risk Register
-  const risks = [
-    { issue: "Third-party API dependency", owner: "Tech Lead", priority: "high", status: "Active" },
-    { issue: "Resource availability", owner: "Delivery Manager", priority: "medium", status: "Mitigated" },
-    { issue: "Client approval delays", owner: "CSP", priority: "low", status: "Monitoring" }
-  ];
-
-  // Engineering Metrics
-  const engineeringMetrics = {
-    codeCoverage: 84,
-    performanceScore: 94,
-    teamComposition: {
-      totalMembers: 12,
-      retentionRate: 89,
-      satisfactionScore: 93
-    }
-  };
+  if (loading) return <div className="p-8 text-center">Loading...</div>;
+  if (error) return <div className="p-8 text-center text-red-500">{error}</div>;
 
   if (!project) {
     return (
@@ -403,7 +266,7 @@ const ProjectDetails = () => {
                 <TrendingUp className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{deliveryMetrics.sprintVelocity}</div>
+                <div className="text-2xl font-bold">{sprintMetricsData.sprintVelocity}</div>
                 <p className="text-xs text-muted-foreground">Story points</p>
               </CardContent>
             </Card>
@@ -414,7 +277,7 @@ const ProjectDetails = () => {
                 <Target className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{deliveryMetrics.predictability}%</div>
+                <div className="text-2xl font-bold">{sprintMetricsData.predictability}%</div>
                 <p className="text-xs text-muted-foreground">Sprint commitment</p>
               </CardContent>
             </Card>
@@ -425,7 +288,7 @@ const ProjectDetails = () => {
                 <AlertTriangle className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{deliveryMetrics.defectLeakage}</div>
+                <div className="text-2xl font-bold">{sprintMetricsData.defectLeakage}</div>
                 <p className="text-xs text-muted-foreground">Production defects</p>
               </CardContent>
             </Card>
@@ -436,7 +299,7 @@ const ProjectDetails = () => {
                 <CheckCircle className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{deliveryMetrics.onTimeDelivery}%</div>
+                <div className="text-2xl font-bold">{sprintMetricsData.onTimeDelivery}%</div>
                 <p className="text-xs text-muted-foreground">Sprint goals met</p>
               </CardContent>
             </Card>
