@@ -42,20 +42,20 @@ export function AppSidebar() {
 
   const renderNavItem = (item: typeof mainNavItems[0]) => {
     const navButton = (
-      <SidebarMenuButton asChild className="w-full group transition-all duration-200 h-12">
+      <SidebarMenuButton asChild className="w-full group transition-all duration-200 h-12 p-0">
         <NavLink 
           to={item.url} 
           end 
           className={({ isActive }) => {
-            const baseClasses = "flex items-center w-full transition-all duration-200 rounded-lg relative overflow-hidden h-12 min-h-[3rem]";
+            const baseClasses = "flex items-center w-full transition-all duration-200 relative overflow-hidden h-12 min-h-[3rem] border border-gray-200 rounded-lg bg-white hover:bg-gray-50 hover:border-gray-300 shadow-sm hover:shadow-md";
             
             const spacingClasses = collapsed && !isMobile 
               ? "justify-center p-3 w-12 h-12 mx-auto" 
               : "justify-start px-4 py-3 gap-3 mx-2";
             
             const activeClasses = isActive 
-              ? "bg-blue-50 text-blue-600 font-medium" 
-              : "text-gray-700 hover:bg-gray-50 hover:text-gray-900";
+              ? "border-l-4 border-l-blue-600 bg-blue-50 text-blue-600 font-medium shadow-md" 
+              : "border-l-4 border-l-transparent text-gray-700";
             
             return `${baseClasses} ${spacingClasses} ${activeClasses}`;
           }}
@@ -104,7 +104,7 @@ export function AppSidebar() {
     <TooltipProvider>
       <Sidebar 
         collapsible="icon"
-        className={`bg-white border-r border-gray-200 transition-all duration-200 ease-in-out fixed left-0 top-16 sm:top-20 h-[calc(100vh-4rem)] sm:h-[calc(100vh-5rem)] z-40 ${
+        className={`bg-gray-50 border-r border-gray-200 transition-all duration-200 ease-in-out fixed left-0 top-16 sm:top-20 h-[calc(100vh-4rem)] sm:h-[calc(100vh-5rem)] z-40 ${
           isActuallyMobile ? "shadow-xl" : "shadow-sm"
         }`}
         style={{
@@ -113,7 +113,7 @@ export function AppSidebar() {
           maxWidth: collapsed && !isMobile ? '3.5rem' : '16rem'
         }}
       >
-        <SidebarHeader className="border-b border-gray-200 px-4 py-4 transition-all duration-200">
+        <SidebarHeader className="border-b border-gray-200 px-4 py-4 transition-all duration-200 bg-white">
           <div className={`flex items-center transition-all duration-200 ${
             collapsed && !isMobile ? "justify-center" : "justify-between"
           }`}>
@@ -156,7 +156,7 @@ export function AppSidebar() {
           </div>
         </SidebarHeader>
 
-        <SidebarContent className={`transition-all duration-200 ${
+        <SidebarContent className={`transition-all duration-200 bg-gray-50 ${
           collapsed && !isMobile ? "px-2 py-4" : "p-4"
         }`}>
           <SidebarGroup>
