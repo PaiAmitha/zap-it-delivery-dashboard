@@ -1,7 +1,10 @@
+from marshmallow import Schema, fields
 from flask_restful import Resource, reqparse
 from app import db
 from app.models.project import Project
 from app.schemas.core import ProjectSchema
+from app.utils.rbac import permission_required
+
 
 class Escalation(db.Model):
     __tablename__ = 'escalations'
@@ -16,7 +19,7 @@ class Escalation(db.Model):
     resolutionETA = db.Column(db.String(32), nullable=True)
     description = db.Column(db.Text, nullable=True)
 
-from marshmallow import Schema, fields
+
 class EscalationSchema(Schema):
     id = fields.Str(dump_only=True)
     title = fields.Str(required=True)
@@ -29,11 +32,14 @@ class EscalationSchema(Schema):
     resolutionETA = fields.Str()
     description = fields.Str()
 
+
 escalation_schema = EscalationSchema()
 escalations_schema = EscalationSchema(many=True)
 
+
 class EscalationListResource(Resource):
     from app.utils.auth import jwt_required
+
     @jwt_required
     def get(self):
         from flask import request
@@ -61,7 +67,8 @@ class EscalationListResource(Resource):
         # Pagination
         page = int(request.args.get('page', 1))
         per_page = int(request.args.get('per_page', 20))
-        pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+        pagination = query.paginate(
+            page=page, per_page=per_page, error_out=False)
         return {
             'total': pagination.total,
             'page': page,
@@ -89,9 +96,11 @@ class EscalationListResource(Resource):
         db.session.commit()
         return escalation_schema.dump(escalation), 201
 
+
 class EscalationResource(Resource):
     from app.utils.auth import jwt_required
     from app.utils.rbac import permission_required
+
     def get(self, escalation_id):
         escalation = Escalation.query.get_or_404(escalation_id)
         return escalation_schema.dump(escalation), 200
