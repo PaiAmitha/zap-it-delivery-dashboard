@@ -1,3 +1,12 @@
+export async function getResignations(token: string, params = {}) {
+  const query = new URLSearchParams(params as any).toString();
+  return apiFetch(`/resignations?${query}`, {}, token);
+}
+
+export async function getInterns(token: string, params = {}) {
+  const query = new URLSearchParams(params as any).toString();
+  return apiFetch(`/interns?${query}`, {}, token);
+}
 // Types for dashboard API response
 export interface DashboardData {
   billable_count: number;
@@ -122,7 +131,7 @@ export async function apiFetch<T>(
 }
 
 export async function login(email: string, password: string) {
-  return apiFetch<{ token: string; user: any }>('/login', {
+  return apiFetch<{ token: string; user: any }>('/api/login', {
     method: 'POST',
     body: JSON.stringify({ email, password }),
   });

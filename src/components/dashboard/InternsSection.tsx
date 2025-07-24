@@ -3,29 +3,30 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { GraduationCap, Calendar, User, DollarSign } from "lucide-react";
+import { useEffect, useState } from "react";
+import { getInterns } from "@/lib/api";
 
-interface Intern {
-  name: string;
-  startDate: string;
-  endDate: string;
-  department: string;
-  assignedProject: string;
-  status: 'Active' | 'Upcoming';
-  mentor: string;
-  education: string;
-  stipend: number;
-  conversionPotential: 'High' | 'Medium' | 'Low';
-}
+export const InternsSection = () => {
+  const [interns, setInterns] = useState<any[]>([]);
+  const [totalStipendCost, setTotalStipendCost] = useState(0);
 
-interface InternsSectionProps {
-  interns: Intern[];
-  totalStipendCost: number;
-  onViewDetails?: (intern: Intern) => void;
-}
+  useEffect(() => {
+    const fetchInterns = async () => {
+      try {
+        const token = localStorage.getItem('token') || '';
+        const result = await getInterns(token);
+        setInterns(Array.isArray(result?.interns) ? result.interns : []);
+        setTotalStipendCost(result?.totalStipendCost || 0);
+      } catch (err) {
+        setInterns([]);
+        setTotalStipendCost(0);
+      }
+    };
+    fetchInterns();
+  }, []);
 
-export const InternsSection = ({ interns, totalStipendCost, onViewDetails }: InternsSectionProps) => {
-  const activeInterns = interns.filter(intern => intern.status === 'Active');
-  const upcomingInterns = interns.filter(intern => intern.status === 'Upcoming');
+  const activeInterns = interns.filter((intern: any) => intern.status === 'Active');
+  const upcomingInterns = interns.filter((intern: any) => intern.status === 'Upcoming');
 
   return (
     <div className="space-y-6">
@@ -126,15 +127,9 @@ export const InternsSection = ({ interns, totalStipendCost, onViewDetails }: Int
                 <div className="mt-4 flex justify-between items-center">
                   <p className="text-sm text-gray-600">{intern.education}</p>
                   <div className="flex gap-2">
-                    {onViewDetails && (
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={() => onViewDetails(intern)}
-                      >
-                        View Details
-                      </Button>
-                    )}
+                    <Button size="sm" variant="outline">
+                      View Details
+                    </Button>
                     <Button size="sm" variant="outline">
                       Edit
                     </Button>

@@ -4,62 +4,25 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { getResignations } from "@/lib/api";
 
 export const ResignationsTab = () => {
   const navigate = useNavigate();
+  const [resignations, setResignations] = useState<any[]>([]);
 
-  const resignations = [
-    {
-      empId: "EMP001",
-      name: "John Doe",
-      resignationDate: "2025-08-15",
-      skill: "React.js",
-      client: "TechCorp",
-      projectName: "E-commerce Platform",
-      replacementPlan: "In Progress",
-      feedback: "Good"
-    },
-    {
-      empId: "EMP002",
-      name: "Jane Smith",
-      resignationDate: "2025-09-01",
-      skill: "Python",
-      client: "DataSys",
-      projectName: "Analytics Dashboard",
-      replacementPlan: "Identified",
-      feedback: "Excellent"
-    },
-    {
-      empId: "EMP003",
-      name: "Mike Johnson",
-      resignationDate: "2025-09-15",
-      skill: "Java",
-      client: "Enterprise Corp",
-      projectName: "Backend Services",
-      replacementPlan: "Replacement Needed",
-      feedback: "Good"
-    },
-    {
-      empId: "EMP004",
-      name: "Sarah Wilson",
-      resignationDate: "2025-10-01",
-      skill: "DevOps",
-      client: "Cloud Systems",
-      projectName: "Infrastructure Migration",
-      replacementPlan: "Not Needed",
-      feedback: "Excellent"
-    },
-    {
-      empId: "EMP005",
-      name: "David Brown",
-      resignationDate: "2025-10-15",
-      skill: "Angular",
-      client: "Web Solutions",
-      projectName: "Dashboard Portal",
-      replacementPlan: "Replaced",
-      feedback: "Good"
-    }
-  ];
+  useEffect(() => {
+    const fetchResignations = async () => {
+      try {
+        const token = localStorage.getItem('token') || '';
+        const result = await getResignations(token);
+        setResignations(Array.isArray(result) ? result : []);
+      } catch (err) {
+        setResignations([]);
+      }
+    };
+    fetchResignations();
+  }, []);
 
   const getReplacementColor = (status: string) => {
     switch (status) {

@@ -9,7 +9,7 @@ import { Search, Filter, Plus, Eye, Edit2, ChevronLeft, ChevronRight } from "luc
 import { useState, useEffect } from "react";
 import { AddEditEmployeeModal } from "@/components/resources/AddEditEmployeeModal";
 import { useNavigate } from "react-router-dom";
-import employeeRecordsData from "@/data/employeeRecordsData.json";
+import { getEmployees } from "@/lib/api";
 
 export const ResourcesTab = () => {
   const navigate = useNavigate();
@@ -24,7 +24,16 @@ export const ResourcesTab = () => {
   const itemsPerPage = 10;
 
   useEffect(() => {
-    setEmployees(employeeRecordsData.employees);
+    const fetchEmployees = async () => {
+      try {
+        const token = localStorage.getItem('token') || '';
+        const result = await getEmployees(token);
+        setEmployees(Array.isArray(result) ? result : []);
+      } catch (err) {
+        // Optionally handle error
+      }
+    };
+    fetchEmployees();
   }, []);
 
   const filteredEmployees = employees.filter(employee => {

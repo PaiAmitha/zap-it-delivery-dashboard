@@ -1,10 +1,7 @@
-
+@import './components/layout/NavigationIconStyles.css';
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-/* Import navigation icon styles */
-@import './components/layout/NavigationIconStyles.css';
 
 @layer base {
   :root {

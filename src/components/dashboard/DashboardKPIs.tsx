@@ -1,20 +1,31 @@
 
 import { EnhancedKPICard } from "@/components/dashboard/EnhancedKPICard";
-import { 
-  Users, 
-  CheckCircle, 
-  AlertTriangle,
-  AlertCircle
-} from "lucide-react";
+import { Users, CheckCircle, AlertTriangle, AlertCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { getDashboard } from "@/lib/api";
 
 export const DashboardKPIs = () => {
   const navigate = useNavigate();
+  const [dashboard, setDashboard] = useState<any>(null);
 
-  const kpiData = [
+  useEffect(() => {
+    const fetchDashboard = async () => {
+      try {
+        const token = localStorage.getItem('token') || '';
+        const data = await getDashboard(token);
+        setDashboard(data);
+      } catch (err) {
+        setDashboard(null);
+      }
+    };
+    fetchDashboard();
+  }, []);
+
+  const kpiData = dashboard ? [
     {
       title: "Active Projects",
-      value: "12",
+      value: dashboard.active_projects?.length ?? 0,
       subtitle: "Currently in progress",
       icon: Users,
       bgColor: "bg-blue-50",
@@ -25,7 +36,7 @@ export const DashboardKPIs = () => {
     },
     {
       title: "On Track",
-      value: "9",
+      value: dashboard.active_projects?.filter((p: any) => p.healthStatus === "On Track").length ?? 0,
       subtitle: "Meeting targets",
       icon: CheckCircle,
       bgColor: "bg-emerald-50",
@@ -36,7 +47,7 @@ export const DashboardKPIs = () => {
     },
     {
       title: "At Risk",
-      value: "3",
+      value: dashboard.active_projects?.filter((p: any) => p.healthStatus === "At Risk").length ?? 0,
       subtitle: "Need attention",
       icon: AlertTriangle,
       bgColor: "bg-amber-50",
@@ -47,7 +58,7 @@ export const DashboardKPIs = () => {
     },
     {
       title: "Escalations",
-      value: "2",
+      value: dashboard.escalations_count ?? 0,
       subtitle: "Requires action",
       icon: AlertCircle,
       bgColor: "bg-red-50",
@@ -55,7 +66,7 @@ export const DashboardKPIs = () => {
       textColor: "text-red-700",
       route: "/escalations"
     }
-  ];
+  ] : [];
 
   const handleKPIClick = (route: string) => {
     navigate(route);
