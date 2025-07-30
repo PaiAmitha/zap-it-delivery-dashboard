@@ -15,7 +15,7 @@ import { AddSprintDataModal } from "@/components/dashboard/AddSprintDataModal";
 import { EditProjectModal } from "@/components/dashboard/EditProjectModal";
 import { DeliveryMetricsFilter } from "@/components/dashboard/DeliveryMetricsFilter";
 import { TeamMemberCard } from "@/components/dashboard/TeamMemberCard";
-import { getProjects } from "@/lib/api";
+import { getProjectDetails, getProjectMilestones, getProjectRisks, getProjectTeamMembers, getProjectEngineeringMetrics } from "@/lib/api";
 
 const ProjectDetails = () => {
   const { projectId } = useParams();
@@ -29,34 +29,40 @@ const ProjectDetails = () => {
   const [error, setError] = useState<string | null>(null);
   const [project, setProject] = useState<any>(null);
   const [teamMembers, setTeamMembers] = useState<any[]>([]);
-  const [sprintMetricsData, setSprintMetricsData] = useState<any>({});
+  // Remove old sprintMetricsData state, use computed metrics from sprints
   const [milestones, setMilestones] = useState<any[]>([]);
   const [risks, setRisks] = useState<any[]>([]);
   const [engineeringMetrics, setEngineeringMetrics] = useState<any>(null);
 
+  // Refetch handler for modals
+  const fetchData = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const token = localStorage.getItem('token') || '';
+      const [projectData, milestonesData, risksData, teamMembersData, engineeringMetricsData] = await Promise.all([
+        getProjectDetails(token, projectId),
+        getProjectMilestones(token, projectId),
+        getProjectRisks(token, projectId),
+        getProjectTeamMembers(token, projectId),
+        getProjectEngineeringMetrics(token, projectId)
+      ]);
+      setProject(projectData || null);
+      setMilestones((milestonesData as any)?.milestones || []);
+      setRisks((risksData as any)?.risks || []);
+      setTeamMembers((teamMembersData as any)?.teamMembers || []);
+      setEngineeringMetrics((engineeringMetricsData as any)?.engineeringMetrics || null);
+    } catch (err: any) {
+      setError(err?.message || 'Failed to load project details');
+    } finally {
+      setLoading(false);
+    }
+  };
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const token = localStorage.getItem('token') || '';
-        const data = await getProjects(token, { id: projectId }) as { projects?: any[] } | any[];
-        const projectData = Array.isArray(data) ? data[0] : (data.projects ? data.projects[0] : data);
-        setProject(projectData || null);
-        setTeamMembers(projectData?.teamMembers || []);
-        setSprintMetricsData(projectData?.sprintMetricsData || {});
-        setMilestones(projectData?.milestones || []);
-        setRisks(projectData?.risks || []);
-        setEngineeringMetrics(projectData?.engineeringMetrics || null);
-      } catch (err: any) {
-        setError(err?.message || 'Failed to load project details');
-      } finally {
-        setLoading(false);
-      }
-    };
     if (projectId) {
       fetchData();
     }
+    // eslint-disable-next-line
   }, [projectId]);
 
   if (loading) return <div className="p-8 text-center">Loading...</div>;
@@ -145,165 +151,147 @@ const ProjectDetails = () => {
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
-          {/* Project Information Cards */}
+          {/* Project Overview Information Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Customer</CardTitle>
+                <CardTitle className="text-sm font-medium">Client</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{project.customer}</div>
+                <div className="text-2xl font-bold">{project?.client || '-'}</div>
               </CardContent>
             </Card>
-            
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Progress</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{project.progress}%</div>
-                <Progress value={project.progress} className="mt-2" />
+                <div className="text-2xl font-bold">{project?.progress ?? '-'}%</div>
+                <Progress value={project?.progress || 0} className="mt-2" />
               </CardContent>
             </Card>
-            
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Team Size</CardTitle>
                 <Users className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{project.teamSize}</div>
+                <div className="text-2xl font-bold">{project?.teamSize ?? '-'}</div>
               </CardContent>
             </Card>
-            
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">On-Time %</CardTitle>
+                <CardTitle className="text-sm font-medium">Risk Count</CardTitle>
                 <Target className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{project.onTimePercentage}%</div>
+                <div className="text-2xl font-bold">{project?.riskCount ?? '-'}</div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Key Team Members with hover cards */}
+          {/* Milestones Table */}
           <Card>
             <CardHeader>
-              <CardTitle>Key Team Members</CardTitle>
+              <CardTitle>Milestones</CardTitle>
             </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Name</TableHead>
-                    <TableHead>Role</TableHead>
-                    <TableHead>Allocation</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Progress</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {teamMembers.map((member, index) => (
-                    <TableRow key={index}>
-                      <TableCell className="font-medium">
-                        <TeamMemberCard member={member}>
-                          <span className="cursor-pointer hover:text-blue-600 transition-colors">
-                            {member.name}
-                          </span>
-                        </TeamMemberCard>
-                      </TableCell>
-                      <TableCell>{member.role}</TableCell>
-                      <TableCell>{member.allocation}</TableCell>
-                      <TableCell>
-                        <Badge className="bg-green-100 text-green-800">{member.status}</Badge>
-                      </TableCell>
+                  {project?.milestones?.length ? project.milestones.map((ms: any, idx: number) => (
+                    <TableRow key={idx}>
+                      <TableCell>{ms.name}</TableCell>
+                      <TableCell>{ms.status}</TableCell>
+                      <TableCell>{ms.date}</TableCell>
+                      <TableCell>{ms.progress}%</TableCell>
                     </TableRow>
-                  ))}
+                  )) : (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center">No milestones</TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
-            </CardContent>
-          </Card>
-
-          {/* Project Details */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Project Details</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Start Date:</span>
-                <span className="font-medium">{project.startDate}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">End Date:</span>
-                <span className="font-medium">{project.endDate}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Current Stage:</span>
-                <span className="font-medium">{project.currentStage}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Health Status:</span>
-                <Badge className="bg-green-100 text-green-800">{project.healthStatus}</Badge>
-              </div>
             </CardContent>
           </Card>
         </TabsContent>
 
         <TabsContent value="delivery" className="space-y-6">
           {/* Delivery Metrics Filter */}
-          <DeliveryMetricsFilter
-            selectedFilter={selectedDeliveryFilter}
-            onFilterChange={setSelectedDeliveryFilter}
-            totalSprints={15}
-          />
+        <DeliveryMetricsFilter
+          selectedFilter={selectedDeliveryFilter}
+          onFilterChange={setSelectedDeliveryFilter}
+          totalSprints={project?.sprints?.length || 0}
+        />
 
-          {/* Delivery KPIs */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Sprint Velocity</CardTitle>
-                <TrendingUp className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{sprintMetricsData.sprintVelocity}</div>
-                <p className="text-xs text-muted-foreground">Story points</p>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Predictability</CardTitle>
-                <Target className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{sprintMetricsData.predictability}%</div>
-                <p className="text-xs text-muted-foreground">Sprint commitment</p>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Defect Leakage</CardTitle>
-                <AlertTriangle className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{sprintMetricsData.defectLeakage}</div>
-                <p className="text-xs text-muted-foreground">Production defects</p>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">On-Time Delivery</CardTitle>
-                <CheckCircle className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{sprintMetricsData.onTimeDelivery}%</div>
-                <p className="text-xs text-muted-foreground">Sprint goals met</p>
-              </CardContent>
-            </Card>
-          </div>
+        {/* Delivery KPIs - computed from sprints and filter */}
+        {(() => {
+          const sprints = project?.sprints || [];
+          let filteredSprints = sprints;
+          if (selectedDeliveryFilter.startsWith('sprint-')) {
+            const sprintNum = parseInt(selectedDeliveryFilter.replace('sprint-', ''));
+            filteredSprints = sprints.filter(s => s.sprintNumber === sprintNum);
+          }
+          // Default: average over all sprints
+          const metrics = {
+            sprintVelocity: filteredSprints.length ? (filteredSprints.reduce((sum, s) => sum + (s.velocity || 0), 0) / filteredSprints.length).toFixed(1) : '-',
+            predictability: filteredSprints.length ? (filteredSprints.reduce((sum, s) => sum + (s.predictability || 0), 0) / filteredSprints.length).toFixed(1) : '-',
+            defectLeakage: filteredSprints.length ? (filteredSprints.reduce((sum, s) => sum + (s.defectLeakage || 0), 0) / filteredSprints.length).toFixed(1) : '-',
+            onTimeDelivery: filteredSprints.length ? (filteredSprints.reduce((sum, s) => sum + (s.onTimeDelivery || 0), 0) / filteredSprints.length).toFixed(1) : '-',
+          };
+          return (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Sprint Velocity</CardTitle>
+                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{metrics.sprintVelocity}</div>
+                  <p className="text-xs text-muted-foreground">Story points</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Predictability</CardTitle>
+                  <Target className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{metrics.predictability}%</div>
+                  <p className="text-xs text-muted-foreground">Sprint commitment</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Defect Leakage</CardTitle>
+                  <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{metrics.defectLeakage}</div>
+                  <p className="text-xs text-muted-foreground">Production defects</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">On-Time Delivery</CardTitle>
+                  <CheckCircle className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{metrics.onTimeDelivery}%</div>
+                  <p className="text-xs text-muted-foreground">Sprint goals met</p>
+                </CardContent>
+              </Card>
+            </div>
+          );
+        })()}
 
           {/* Milestone Status */}
           <Card>
@@ -368,7 +356,7 @@ const ProjectDetails = () => {
         </TabsContent>
 
         <TabsContent value="teams" className="space-y-6">
-          <TeamsTab />
+          <TeamsTab teams={project?.teams} teamMembers={teamMembers} />
         </TabsContent>
 
         <TabsContent value="engineering" className="space-y-6">
@@ -378,12 +366,12 @@ const ProjectDetails = () => {
               <TabsTrigger value="qa">QA</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="development">
-              <DevelopmentTab />
+      <TabsContent value="development">
+              <DevelopmentTab engineeringMetrics={engineeringMetrics} />
             </TabsContent>
 
             <TabsContent value="qa">
-              <QATab />
+              <QATab engineeringMetrics={engineeringMetrics} />
             </TabsContent>
           </Tabs>
         </TabsContent>
@@ -392,12 +380,19 @@ const ProjectDetails = () => {
       {/* Modals */}
       <AddSprintDataModal 
         isOpen={isAddSprintModalOpen}
-        onClose={() => setIsAddSprintModalOpen(false)}
-        projectName={project.name}
+        onClose={(refresh?: boolean) => {
+          setIsAddSprintModalOpen(false);
+          if (refresh) { fetchData(); }
+        }}
+        projectId={project?.id}
+        projectName={project?.name}
       />
       <EditProjectModal 
         isOpen={isEditProjectModalOpen}
-        onClose={() => setIsEditProjectModalOpen(false)}
+        onClose={(refresh?: boolean) => {
+          setIsEditProjectModalOpen(false);
+          if (refresh) fetchData();
+        }}
         projectData={project}
       />
     </div>

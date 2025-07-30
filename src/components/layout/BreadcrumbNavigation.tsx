@@ -30,8 +30,8 @@ export const BreadcrumbNavigation = () => {
       return items;
     }
 
-    // Handle resource-view pages (Resource Details)
-    if (pathSegments[0] === "resource-view") {
+    // Handle resource-details pages (Resource Details)
+    if (pathSegments[0] === "resource-details") {
       items.push(
         { label: "Resource Management", path: "/resource-management" },
         { label: "Resource Details", path: location.pathname, isActive: true }

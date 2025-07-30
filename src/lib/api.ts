@@ -1,3 +1,65 @@
+// Fetch project milestones
+export async function getProjectMilestones(token: string, projectId: string | number) {
+  return apiFetch(`/projects/${projectId}/milestones`, {}, token);
+}
+
+// Fetch project risks
+export async function getProjectRisks(token: string, projectId: string | number) {
+  return apiFetch(`/projects/${projectId}/risks`, {}, token);
+}
+
+// Fetch project team members
+export async function getProjectTeamMembers(token: string, projectId: string | number) {
+  return apiFetch(`/projects/${projectId}/team-members`, {}, token);
+}
+
+// Fetch project engineering metrics
+export async function getProjectEngineeringMetrics(token: string, projectId: string | number) {
+  return apiFetch(`/projects/${projectId}/engineering-metrics`, {}, token);
+}
+// Create a new sprint for a project
+export async function createSprint(token: string, projectId: string | number, sprintData: any) {
+  return apiFetch(`/projects/${projectId}/sprints`, {
+    method: 'POST',
+    body: JSON.stringify(sprintData),
+  }, token);
+}
+
+// Update an existing project
+export async function updateProject(token: string, projectId: string | number, projectData: any) {
+  return apiFetch(`/projects/${projectId}`, {
+    method: 'PUT',
+    body: JSON.stringify(projectData),
+  }, token);
+}
+// Fetch project overview info for ProjectDetails overview tab
+export async function getProjectOverview(token: string, projectId: string | number) {
+  return apiFetch(`/projects/${projectId}/overview`, {}, token);
+}
+// Fetch detailed project info for ProjectDetails view
+export async function getProjectDetails(token: string, projectId: string | number) {
+  return apiFetch(`/projects/${projectId}/details`, {}, token);
+}
+// Escalation CRUD operations
+export async function createEscalation(token: string, escalationData: any) {
+  return apiFetch('/escalations', {
+    method: 'POST',
+    body: JSON.stringify(escalationData),
+  }, token);
+}
+
+export async function updateEscalation(token: string, escalationId: string, escalationData: any) {
+  return apiFetch(`/escalations/${escalationId}`, {
+    method: 'PUT',
+    body: JSON.stringify(escalationData),
+  }, token);
+}
+
+export async function deleteEscalation(token: string, escalationId: string) {
+  return apiFetch(`/escalations/${escalationId}`, {
+    method: 'DELETE',
+  }, token);
+}
 export async function getResignations(token: string, params = {}) {
   const query = new URLSearchParams(params as any).toString();
   return apiFetch(`/resignations?${query}`, {}, token);
@@ -7,6 +69,7 @@ export async function getInterns(token: string, params = {}) {
   const query = new URLSearchParams(params as any).toString();
   return apiFetch(`/interns?${query}`, {}, token);
 }
+// NOTE: /dashboard endpoint only supports GET requests. Do not use POST, PUT, or DELETE for /dashboard.
 // Types for dashboard API response
 export interface DashboardData {
   billable_count: number;
@@ -54,6 +117,8 @@ export interface DashboardData {
     monthlyCost: number;
     suggestion: string;
   }>;
+  projectCards: any[];
+  dashboard_kpis: any;
   // For Dashboard
   active_projects: Array<{
     id: number;
@@ -104,24 +169,28 @@ export interface FinanceData {
   };
 }
 
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000/api';
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000';
 
 export async function apiFetch<T>(
   endpoint: string,
   options: RequestInit = {},
   authToken?: string
 ): Promise<T> {
-  const baseHeaders: Record<string, string> = {
-    'Content-Type': 'application/json',
+  // Always set Content-Type for POST/PUT requests unless already set
+  let headers: Record<string, string> = {
     ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
-  };
-  const mergedHeaders = {
-    ...baseHeaders,
     ...(options.headers ? (options.headers as Record<string, string>) : {}),
   };
+  // Fix: ensure Content-Type is set regardless of header case
+  const hasContentType = Object.keys(headers).some(
+    (k) => k.toLowerCase() === 'content-type'
+  );
+  if ((options.method === 'POST' || options.method === 'PUT') && !hasContentType) {
+    headers['Content-Type'] = 'application/json';
+  }
   const res = await fetch(`${API_BASE}${endpoint}`, {
     ...options,
-    headers: mergedHeaders,
+    headers,
   });
   if (!res.ok) {
     const error = await res.json().catch(() => ({}));
@@ -137,14 +206,40 @@ export async function login(email: string, password: string) {
   });
 }
 
-export async function getEmployees(token: string, params = {}) {
-  const query = new URLSearchParams(params as any).toString();
-  return apiFetch(`/employees?${query}`, {}, token);
+
+// Resource CRUD
+
+
+export async function getResource(token: string, resourceId: string) {
+  return apiFetch(`/resources/${resourceId}`, {}, token);
 }
 
-export async function getEmployee(token: string, employeeId: string) {
-  return apiFetch(`/employees/${employeeId}`, {}, token);
+export async function createResource(token: string, resourceData: any) {
+  return apiFetch('/resources', {
+    method: 'POST',
+    body: JSON.stringify(resourceData),
+  }, token);
 }
+
+export async function updateResource(token: string, resourceId: string, resourceData: any) {
+  return apiFetch(`/resources/${resourceId}`, {
+    method: 'PUT',
+    body: JSON.stringify(resourceData),
+  }, token);
+}
+
+export async function deleteResource(token: string, resourceId: string) {
+  return apiFetch(`/resources/${resourceId}`, {
+    method: 'DELETE',
+  }, token);
+}
+
+export async function getResources(token: string, params = {}) {
+  const query = new URLSearchParams(params as any).toString();
+  return apiFetch(`/resources?${query}`, {}, token);
+}
+
+
 
 export async function getProjects(token: string, params = {}) {
   const query = new URLSearchParams(params as any).toString();
@@ -156,8 +251,13 @@ export async function getEscalations(token: string, params = {}) {
   return apiFetch(`/escalations?${query}`, {}, token);
 }
 
+/**
+ * Fetch dashboard data. This endpoint only supports GET requests.
+ * @param token Auth token
+ */
 export async function getDashboard(token: string) {
-  return apiFetch<DashboardData>('/dashboard', {}, token);
+  // Always use GET for /dashboard
+  return apiFetch<DashboardData>('/dashboard', { method: 'GET' }, token);
 }
 
 export async function getFinance(token: string) {
@@ -180,4 +280,24 @@ export async function createEmployee(token: string, employeeData: any) {
     method: 'POST',
     body: JSON.stringify(employeeData),
   }, token);
+}
+
+// Upcoming Releases
+export async function getUpcomingReleases(token: string) {
+  return apiFetch('/upcoming-releases', {}, token);
+}
+
+// Interns
+export async function getInternResources(token: string) {
+  return apiFetch('/interns', {}, token);
+}
+
+// Financial Dashboard
+export async function getFinancialDashboard(token: string) {
+  return apiFetch('/resources/financial-overview', {}, token);
+}
+
+// Resource Details
+export async function getResourceDetails(token: string, resourceId: string | number) {
+  return apiFetch(`/resources/${resourceId}`, {}, token);
 }

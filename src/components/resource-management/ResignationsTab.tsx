@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -10,15 +9,21 @@ import { getResignations } from "@/lib/api";
 export const ResignationsTab = () => {
   const navigate = useNavigate();
   const [resignations, setResignations] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchResignations = async () => {
+      setLoading(true);
+      setError(null);
       try {
         const token = localStorage.getItem('token') || '';
         const result = await getResignations(token);
-        setResignations(Array.isArray(result) ? result : []);
-      } catch (err) {
-        setResignations([]);
+        setResignations((result as any).resignations || []);
+      } catch (err: any) {
+        setError(err?.message || 'Failed to fetch resignations');
+      } finally {
+        setLoading(false);
       }
     };
     fetchResignations();
@@ -35,9 +40,17 @@ export const ResignationsTab = () => {
     }
   };
 
-  const handleViewDetails = (empId: string) => {
-    navigate(`/resource-view/${empId}`);
+  const handleViewDetails = (employeeId: string) => {
+    navigate(`/resource-details/${employeeId}`);
   };
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
+  if (error) {
+    return <div>Error: {error}</div>;
+  }
 
   return (
     <div className="space-y-6">
@@ -50,8 +63,8 @@ export const ResignationsTab = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Employee ID</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Resignation Date</TableHead>
+                <TableHead>Full Name</TableHead>
+                <TableHead>Last Working Day</TableHead>
                 <TableHead>Primary Skill</TableHead>
                 <TableHead>Client</TableHead>
                 <TableHead>Project Name</TableHead>
@@ -61,31 +74,37 @@ export const ResignationsTab = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {resignations.map((resignation) => (
-                <TableRow key={resignation.empId}>
-                  <TableCell>{resignation.empId}</TableCell>
-                  <TableCell className="font-medium">{resignation.name}</TableCell>
-                  <TableCell>{resignation.resignationDate}</TableCell>
-                  <TableCell>{resignation.skill}</TableCell>
-                  <TableCell>{resignation.client}</TableCell>
-                  <TableCell>{resignation.projectName}</TableCell>
-                  <TableCell>
-                    <Badge className={getReplacementColor(resignation.replacementPlan)}>
-                      {resignation.replacementPlan}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{resignation.feedback}</TableCell>
-                  <TableCell>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => handleViewDetails(resignation.empId)}
-                    >
-                      View Details
-                    </Button>
-                  </TableCell>
+              {resignations.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={9} className="text-center text-gray-500">No resignations found.</TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                resignations.map((resignation) => (
+                  <TableRow key={resignation.resourceId}>
+                    <TableCell>{resignation.resourceId}</TableCell>
+                    <TableCell className="font-medium">{resignation.fullName}</TableCell>
+                    <TableCell>{resignation.last_working_day}</TableCell>
+                    <TableCell>{resignation.primary_skill}</TableCell>
+                    <TableCell>{resignation.client}</TableCell>
+                    <TableCell>{resignation.project_name}</TableCell>
+                    <TableCell>
+                      <Badge className={getReplacementColor(resignation.replacement_plan)}>
+                        {resignation.replacement_plan}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{resignation.feedback}</TableCell>
+                    <TableCell>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleViewDetails(resignation.resourceId)}
+                      >
+                        View Details
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </CardContent>

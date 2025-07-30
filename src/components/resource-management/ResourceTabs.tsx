@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -8,13 +7,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ResourceAnalyticsDashboard } from "@/components/resource-management/ResourceAnalyticsDashboard";
 import { InternsSection } from "@/components/dashboard/InternsSection";
 import { FinancialSummaryCard } from "@/components/dashboard/FinancialSummaryCard";
-import { AddEditEmployeeModal } from "@/components/resources/AddEditEmployeeModal";
-import { EmployeeRecordsTable } from "@/components/resources/EmployeeRecordsTable";
+import { AddEditResourceModal } from "@/components/resources/AddEditResourceModal";
+import { ResourceTable } from "@/components/resources/ResourceTable";
 import { UpcomingReleases } from "@/components/resources/UpcomingReleases";
 import { TrendingUp, DollarSign, GraduationCap, Database, Search, Download, Plus, Users, Filter } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import employeeRecordsData from "@/data/employeeRecordsData.json";
+// ...existing code...
 
 interface ResourceTabsProps {
   seniorityData: any[];
@@ -48,46 +47,6 @@ const sampleReleases = [
   },
 ];
 
-// KPI Cards data matching the image
-const resourceKPIs = [
-  {
-    title: "Total Resources",
-    value: "142",
-    subtitle: "Active across all projects",
-    change: "+2.5% from last month",
-    changeType: "positive",
-    icon: Users,
-    gradient: "from-blue-500 to-blue-600",
-  },
-  {
-    title: "Billable Resources",
-    value: "89",
-    subtitle: "62.7% billability rate",
-    change: "+5.2% efficiency",
-    changeType: "positive",
-    icon: TrendingUp,
-    gradient: "from-green-500 to-green-600",
-  },
-  {
-    title: "Non-Billable Resources",
-    value: "45",
-    subtitle: "31.7% bench strength",
-    change: "15 in training",
-    changeType: "neutral",
-    icon: Users,
-    gradient: "from-orange-500 to-orange-600",
-  },
-  {
-    title: "Interns",
-    value: "8",
-    subtitle: "70% conversion rate",
-    change: "3 converting soon",
-    changeType: "positive",
-    icon: GraduationCap,
-    gradient: "from-purple-500 to-purple-600",
-  },
-];
-
 export const ResourceTabs = ({
   seniorityData,
   skillData,
@@ -99,92 +58,153 @@ export const ResourceTabs = ({
 }: ResourceTabsProps) => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [selectedEmployee, setSelectedEmployee] = useState<any>(null);
+  const [selectedResource, setSelectedResource] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterDepartment, setFilterDepartment] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
-  const [employees, setEmployees] = useState<any[]>([]);
+  const [resources, setResources] = useState<any[]>([]);
+  const [dashboard, setDashboard] = useState<any>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Load employee data from JSON file
-    setEmployees(employeeRecordsData.employees);
+    // Fetch resource data from backend
+    const fetchResources = async () => {
+      try {
+        const token = localStorage.getItem('token') || '';
+        const result = await import('@/lib/api').then(api => api.getResources(token));
+        setResources(Array.isArray(result) ? result : []);
+      } catch (err) {
+        setResources([]);
+      }
+    };
+    fetchResources();
+    // Fetch dashboard data
+    const fetchDashboard = async () => {
+      try {
+        const token = localStorage.getItem('token') || '';
+        const data = await fetchDashboard();
+        setDashboard(data);
+      } catch (err) {
+        // Optionally handle error
+      }
+    };
+    fetchDashboard();
   }, []);
 
-  // Filter employees based on search, department, and status
-  const filteredEmployees = employees.filter(employee => {
-    const matchesSearch = employee.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         employee.employeeId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         employee.designation.toLowerCase().includes(searchTerm.toLowerCase());
+  // Filter resources based on search, department, and status
+  const filteredResources = resources.filter(resource => {
+    const matchesSearch = resource.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         resource.employeeId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         resource.designation?.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesDepartment = filterDepartment === "all" || employee.department === filterDepartment;
+    const matchesDepartment = filterDepartment === "all" || resource.department === filterDepartment;
     
     const matchesStatus = filterStatus === "all" || 
-                         (filterStatus === "billable" && employee.billableStatus) ||
-                         (filterStatus === "non-billable" && !employee.billableStatus);
+                         (filterStatus === "billable" && resource.billableStatus) ||
+                         (filterStatus === "non-billable" && !resource.billableStatus);
     
     return matchesSearch && matchesDepartment && matchesStatus;
   });
 
-  const handleAddEmployee = () => {
-    setSelectedEmployee(null);
+  const handleAddResource = () => {
+    setSelectedResource(null);
     setIsAddModalOpen(true);
   };
 
-  const handleEditEmployee = (employee: any) => {
-    setSelectedEmployee(employee);
+  const handleEditResource = (resource: any) => {
+    setSelectedResource(resource);
     setIsEditModalOpen(true);
   };
 
-  const handleViewEmployee = (employee: any) => {
-    navigate(`/employee-details/${employee.employeeId}`);
+  const handleViewResource = (resource: any) => {
+    navigate(`/resource-details/${resource.employeeId}`);
   };
 
-  const handleDeleteEmployee = (employee: any) => {
-    setEmployees(prev => prev.filter(emp => emp.employeeId !== employee.employeeId));
+  const handleDeleteResource = (resource: any) => {
+    setResources(prev => prev.filter(res => res.employeeId !== resource.employeeId));
     toast({
-      title: "Employee Deleted",
-      description: `${employee.fullName} has been removed from the system.`,
+      title: "Resource Deleted",
+      description: `${resource.fullName} has been removed from the system.`,
       variant: "destructive",
     });
   };
 
-  const handleSaveEmployee = (data: any) => {
-    if (selectedEmployee) {
-      // Edit existing employee
-      setEmployees(prev => prev.map(emp => 
-        emp.employeeId === selectedEmployee.employeeId ? { ...emp, ...data } : emp
+  const handleSaveResource = (data: any) => {
+    if (selectedResource) {
+      // Edit existing resource (local only)
+      setResources(prev => prev.map(res => 
+        res.employeeId === selectedResource.employeeId ? { ...res, ...data, billableStatus: normalizeBillableStatus(data.billableStatus) } : res
       ));
       toast({
         title: "Success",
-        description: "Employee updated successfully.",
+        description: "Resource updated successfully.",
       });
-    } else {
-      // Add new employee
-      const newEmployee = {
-        ...data,
-        employeeId: `EMP${String(employees.length + 1).padStart(3, '0')}`,
-        billableStatus: data.billableStatus === "Yes",
-      };
-      setEmployees(prev => [...prev, newEmployee]);
-      toast({
-        title: "Success",
-        description: "Employee added successfully.",
-      });
+      setIsAddModalOpen(false);
+      setIsEditModalOpen(false);
+      setSelectedResource(null);
+      return;
     }
-    setIsAddModalOpen(false);
-    setIsEditModalOpen(false);
-    setSelectedEmployee(null);
-  };
 
-  const handleProjectAllocation = () => {
-    toast({
-      title: "Project Allocation",
-      description: "Project allocation feature will be implemented.",
+    // Add new resource via backend
+    const token = localStorage.getItem('token') || '';
+    const newResource = {
+      ...data,
+      billableStatus: normalizeBillableStatus(data.billableStatus),
+      fullName: data.fullName || '',
+      designation: data.designation || '',
+      department: data.department || '',
+      seniorityLevel: data.seniorityLevel || '',
+      experience: data.experience || '',
+      location: data.location || '',
+      joiningDate: data.joiningDate || '',
+      employmentType: data.employmentType || 'FTE',
+      reportingManager: data.reportingManager || '',
+      primarySkills: data.primarySkills || [],
+      skillCategory: data.skillCategory || '',
+      currentEngagement: data.currentEngagement || '',
+      projectName: data.projectName || '',
+      projectDescription: data.projectDescription || '',
+      engagementStartDate: data.engagementStartDate || '',
+      engagementEndDate: data.engagementEndDate || '',
+      monthlySalary: data.monthlySalary || '',
+    };
+    import('@/lib/api').then(api => {
+      api.createResource(token, newResource)
+        .then((created: any) => {
+          setResources(prev => [...prev, created]);
+          toast({
+            title: "Success",
+            description: "Resource added successfully.",
+          });
+        })
+        .catch(() => {
+          toast({
+            title: "Error",
+            description: "Failed to add resource. Please try again.",
+            variant: "destructive",
+          });
+        })
+        .finally(() => {
+          setIsAddModalOpen(false);
+          setIsEditModalOpen(false);
+          setSelectedResource(null);
+        });
     });
   };
 
+  // Helper to normalize billableStatus to boolean
+  function normalizeBillableStatus(val: any) {
+    if (typeof val === 'boolean') {
+      return val;
+    }
+    if (typeof val === 'string') {
+      return val.toLowerCase() === 'billable' || val.toLowerCase() === 'yes' || val === 'true';
+    }
+    return false;
+  }
+
+  // Handlers for releases
   const handleViewReleaseDetails = (release: any) => {
     toast({
       title: "View Details",
@@ -199,6 +219,45 @@ export const ResourceTabs = ({
     });
   };
 
+  // Dynamic KPI data from backend
+  const resourceKPIs = dashboard ? [
+    {
+      title: "Total Resources",
+      value: dashboard.total_resources,
+      subtitle: "Active across all projects",
+      change: dashboard.monthly_growth ? `+${dashboard.monthly_growth}% from last month` : undefined,
+      changeType: dashboard.monthly_growth && dashboard.monthly_growth > 0 ? "positive" : "neutral",
+      icon: Users,
+      gradient: "from-blue-500 to-blue-600",
+    },
+    {
+      title: "Billable Resources",
+      value: dashboard.billable_resources_count,
+      subtitle: dashboard.total_resources ? `${((dashboard.billable_resources_count / dashboard.total_resources) * 100).toFixed(1)}% billability rate` : undefined,
+      change: dashboard.billable_resources_count && dashboard.total_resources ? `+${((dashboard.billable_resources_count / dashboard.total_resources) * 100).toFixed(1)}% efficiency` : undefined,
+      changeType: "positive",
+      icon: TrendingUp,
+      gradient: "from-green-500 to-green-600",
+    },
+    {
+      title: "Non-Billable Resources",
+      value: dashboard.non_billable_resources_count,
+      subtitle: dashboard.total_resources ? `${((dashboard.non_billable_resources_count / dashboard.total_resources) * 100).toFixed(1)}% bench strength` : undefined,
+      change: dashboard.non_billable_resources_count ? `${dashboard.non_billable_resources_count} in training` : undefined,
+      changeType: "neutral",
+      icon: Users,
+      gradient: "from-orange-500 to-orange-600",
+    },
+    {
+      title: "Interns",
+      value: dashboard.total_interns,
+      subtitle: dashboard.intern_conversion_rate ? `${dashboard.intern_conversion_rate}% conversion rate` : undefined,
+      change: dashboard.interns_converting_soon ? `${dashboard.interns_converting_soon} converting soon` : undefined,
+      changeType: "positive",
+      icon: GraduationCap,
+      gradient: "from-purple-500 to-purple-600",
+    },
+  ] : [];
   return (
     <>
       {/* KPI Cards */}
@@ -289,11 +348,7 @@ export const ResourceTabs = ({
         </TabsContent>
 
         <TabsContent value="interns" className="space-y-4 sm:space-y-6 mt-4 sm:mt-6">
-          <InternsSection 
-            interns={internsData} 
-            totalStipendCost={internsData.reduce((sum, intern) => sum + intern.stipend, 0)}
-            onViewDetails={() => {}}
-          />
+          <InternsSection />
         </TabsContent>
 
         <TabsContent value="financial" className="space-y-4 sm:space-y-6 mt-4 sm:mt-6">
@@ -303,14 +358,15 @@ export const ResourceTabs = ({
           />
         </TabsContent>
 
+
         <TabsContent value="resources" className="space-y-4 sm:space-y-6 mt-4 sm:mt-6">
           <div className="space-y-6">
-            {/* Employee Management Header */}
+            {/* Resource Management Header */}
             <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold text-gray-900">Employee Management</h2>
-              <Button onClick={handleAddEmployee} className="flex items-center gap-2">
+              <h2 className="text-2xl font-bold text-gray-900">Resource Management</h2>
+              <Button onClick={handleAddResource} className="flex items-center gap-2">
                 <Plus className="h-4 w-4" />
-                Add Employee
+                Add Resource
               </Button>
             </div>
 
@@ -319,7 +375,7 @@ export const ResourceTabs = ({
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
-                  placeholder="Search employees..."
+                  placeholder="Search resources..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -354,17 +410,17 @@ export const ResourceTabs = ({
               </Button>
             </div>
 
-            {/* Employee Records Table */}
+            {/* Resource Records Table */}
             <Card className="bg-white">
               <CardHeader>
-                <CardTitle>Employee Records ({filteredEmployees.length})</CardTitle>
+                <CardTitle>Resource Records ({filteredResources.length})</CardTitle>
               </CardHeader>
               <CardContent>
-                <EmployeeRecordsTable 
-                  employees={filteredEmployees}
-                  onView={handleViewEmployee}
-                  onEdit={handleEditEmployee}
-                  onDelete={handleDeleteEmployee}
+                <ResourceTable 
+                  resources={filteredResources}
+                  onView={handleViewResource}
+                  onEdit={handleEditResource}
+                  onDelete={handleDeleteResource}
                 />
               </CardContent>
             </Card>
@@ -373,20 +429,21 @@ export const ResourceTabs = ({
       </Tabs>
 
       {/* Modals */}
-      <AddEditEmployeeModal
+      <AddEditResourceModal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
-        onSave={handleSaveEmployee}
+        onSave={handleSaveResource}
         mode="add"
       />
 
-      <AddEditEmployeeModal
+      <AddEditResourceModal
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
-        onSave={handleSaveEmployee}
-        employee={selectedEmployee}
+        onSave={handleSaveResource}
+        resource={selectedResource}
         mode="edit"
       />
+
     </>
   );
 };

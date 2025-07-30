@@ -7,10 +7,11 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface InternDataFormProps {
   formData: any;
-  handleInputChange: (field: string, value: string) => void;
+  onChange: (field: string, value: string) => void;
 }
 
-export const InternDataForm = ({ formData, handleInputChange }: InternDataFormProps) => {
+export const InternDataForm = ({ formData, onChange }: InternDataFormProps) => {
+  const handleInputChange = onChange;
   return (
     <Card className="border-blue-200 bg-blue-50/30">
       <CardHeader>

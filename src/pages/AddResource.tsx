@@ -10,12 +10,14 @@ import { ResourceManagementForm } from "@/components/forms/ResourceManagementFor
 import { InternDataForm } from "@/components/forms/InternDataForm";
 import { FinanceDataForm } from "@/components/forms/FinanceDataForm";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { createEmployee } from "@/lib/api";
+import { createResource } from "@/lib/api";
 
 const AddResource = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
+    email: "",
+    phone: "",
     // HR Fields
     employeeId: "",
     fullName: "",
@@ -33,14 +35,14 @@ const AddResource = () => {
     // Resource Management Fields
     primarySkills: [] as string[],
     skillCategory: "",
-    billableStatus: "",
+    billableStatus: "false" as "true" | "false",
     currentEngagement: "",
     projectName: "",
-    projectDescription: "",
+    engagementDescription: "",
     engagementStartDate: "",
     engagementEndDate: "",
     agingInNonBillable: "",
-    currentBenchStatus: "",
+    currentBenchStatus: "false" as "true" | "false",
     engagementDetail: "",
     
     // Intern Fields
@@ -69,7 +71,48 @@ const AddResource = () => {
     setSuccess(false);
     try {
       const token = localStorage.getItem('token') || '';
-      await createEmployee(token, formData);
+      // Map formData to ResourceData
+      // Ensure skills and primarySkills are always arrays, never null
+      const skillsArray = Array.isArray(formData.primarySkills)
+        ? formData.primarySkills.filter(s => !!s)
+        : [];
+      const resourceData = {
+        resourceId: formData.employeeId,
+        email: formData.email,
+        phone: formData.phone,
+        fullName: formData.fullName,
+        designation: formData.designation,
+        department: formData.department,
+        reportingManager: formData.reportingManager,
+        location: formData.location,
+        joiningDate: formData.joiningDate,
+        employmentType: formData.employmentType,
+        experience: parseInt(formData.experience) || 0,
+        seniorityLevel: formData.seniorityLevel,
+        skills: skillsArray,
+        primarySkills: skillsArray,
+        billableStatus: String(formData.billableStatus) === "true",
+        currentEngagement: formData.currentEngagement,
+        engagementStartDate: formData.engagementStartDate,
+        engagementEndDate: formData.engagementEndDate,
+        agingInNonBillable: parseInt(formData.agingInNonBillable) || 0,
+        currentBenchStatus: String(formData.currentBenchStatus) === "true",
+        engagementDetail: formData.engagementDetail,
+        internshipStartDate: formData.internshipStartDate,
+        internshipEndDate: formData.internshipEndDate,
+        assignedProject: formData.assignedProject,
+        mentorName: formData.mentorName,
+        stipend: formData.stipend ? parseInt(formData.stipend) : undefined,
+        monthlySalaryCost: parseInt(formData.monthlySalaryCost) || 0,
+        billingRate: formData.billingRate ? parseInt(formData.billingRate) : undefined,
+        monthlyRevenueGenerated: parseInt(formData.monthlyRevenueGenerated) || 0,
+        costCenter: formData.costCenter,
+        totalYTDCost: parseInt(formData.totalYTDCost) || 0,
+        totalYTDRevenue: parseInt(formData.totalYTDRevenue) || 0
+      };
+      console.log('Submitting to endpoint:', '/resources');
+      console.log('Submitting resourceData:', resourceData);
+      await createResource(token, resourceData);
       setSuccess(true);
       toast({
         title: "Resource Added Successfully",
@@ -77,7 +120,8 @@ const AddResource = () => {
       });
       navigate("/resource-management");
     } catch (err: any) {
-      setError(err?.message || 'Failed to add resource');
+      console.error('Resource creation error:', err);
+      setError(err?.message || err?.details || 'Failed to add resource');
     } finally {
       setLoading(false);
     }
@@ -124,7 +168,7 @@ const AddResource = () => {
             <TabsContent value="hr" className="h-full">
               <ScrollArea className="h-full">
                 <div className="space-y-6 pr-4">
-                  <HRDataForm formData={formData} handleInputChange={handleInputChange} />
+        <HRDataForm formData={formData} onChange={handleInputChange} />
                 </div>
               </ScrollArea>
             </TabsContent>
@@ -132,7 +176,22 @@ const AddResource = () => {
             <TabsContent value="resource" className="h-full">
               <ScrollArea className="h-full">
                 <div className="space-y-6 pr-4">
-                  <ResourceManagementForm formData={formData} handleInputChange={handleInputChange} />
+                  <ResourceManagementForm
+                    formData={{
+                      primarySkills: formData.primarySkills,
+                      skillCategory: formData.skillCategory,
+                      billableStatus: formData.billableStatus as "true" | "false",
+                      currentEngagement: formData.currentEngagement,
+                      projectName: formData.projectName,
+                      engagementDescription: formData.engagementDescription,
+                      engagementStartDate: formData.engagementStartDate,
+                      engagementEndDate: formData.engagementEndDate,
+                      agingInNonBillable: formData.agingInNonBillable,
+                      currentBenchStatus: formData.currentBenchStatus as "true" | "false",
+                      engagementDetail: formData.engagementDetail
+                    }}
+                    onChange={handleInputChange}
+                  />
                 </div>
               </ScrollArea>
             </TabsContent>
@@ -141,7 +200,7 @@ const AddResource = () => {
               <TabsContent value="intern" className="h-full">
                 <ScrollArea className="h-full">
                   <div className="space-y-6 pr-4">
-                    <InternDataForm formData={formData} handleInputChange={handleInputChange} />
+        <InternDataForm formData={formData} onChange={handleInputChange} />
                   </div>
                 </ScrollArea>
               </TabsContent>
@@ -150,7 +209,7 @@ const AddResource = () => {
             <TabsContent value="finance" className="h-full">
               <ScrollArea className="h-full">
                 <div className="space-y-6 pr-4">
-                  <FinanceDataForm formData={formData} handleInputChange={handleInputChange} />
+        <FinanceDataForm formData={formData} onChange={handleInputChange} />
                 </div>
               </ScrollArea>
             </TabsContent>

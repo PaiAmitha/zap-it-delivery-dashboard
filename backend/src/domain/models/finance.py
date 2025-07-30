@@ -3,6 +3,27 @@ from sqlalchemy.orm import relationship
 from .base import Base
 
 class Finance(Base):
+    project_id = Column(String)
+    project_name = Column(String)
+    project_type = Column(String)  # Fixed Price, T&M, Milestone
+    client = Column(String)
+    sow_value = Column(Float)
+    billing_rate = Column(String)
+    start_date = Column(String)
+    end_date = Column(String)
+    actual_cost_to_date = Column(Float)
+    billable_resources = Column(Integer)
+    non_billable_resources = Column(Integer)
+    shadow_resources = Column(Integer)
+    monthly_burn = Column(Float)
+    projected_completion = Column(String)
+    net_position = Column(Float)
+    health_status = Column(String)  # Positive, Negative, Critical
+    profit_margin = Column(Float)
+    utilization_rate = Column(Float)
+    billable_cost = Column(Float)
+    non_billable_cost = Column(Float)
+    shadow_cost = Column(Float)
     __tablename__ = 'finance'
     id = Column(Integer, primary_key=True)
     project_id = Column(Integer, ForeignKey('projects.id'))

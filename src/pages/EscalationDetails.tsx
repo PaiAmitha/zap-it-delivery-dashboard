@@ -8,7 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
 import { UserHoverCard } from "@/components/ui/user-hover-card";
 import { Building, User, Calendar, Clock, FileText, AlertCircle, CheckCircle, XCircle, Timer } from "lucide-react";
-import { getEscalations } from "@/lib/api";
+import { getEscalation } from "@/lib/escalationApi";
 
 interface Escalation {
   id: string;
@@ -18,8 +18,9 @@ interface Escalation {
   owner: string;
   priority: string;
   status: string;
-  dateRaised: string;
-  resolutionETA: string;
+  date_raised: string;
+  resolution_eta: string;
+  risk_level?: string;
   description?: string;
 }
 
@@ -34,19 +35,8 @@ const EscalationDetails = () => {
       setLoading(true);
       setError(null);
       try {
-        const token = localStorage.getItem('token') || '';
-        const result = await getEscalations(token, { id });
-        let found: Escalation | null = null;
-        // Normalize id for comparison (string/number)
-        const idStr = String(id);
-        if (Array.isArray(result)) {
-          found = result.find((esc: Escalation) => String(esc.id) === idStr) || null;
-        } else if (result && Array.isArray((result as { escalations?: Escalation[] }).escalations)) {
-          found = ((result as { escalations: Escalation[] }).escalations).find((esc: Escalation) => String(esc.id) === idStr) || null;
-        } else if (result && (result as Escalation).id && String((result as Escalation).id) === idStr) {
-          found = result as Escalation;
-        }
-        setEscalation(found);
+        const result = await getEscalation(Number(id));
+        setEscalation(result || null);
       } catch (err: any) {
         setError(err?.message || 'Failed to fetch escalation');
       } finally {
@@ -167,7 +157,7 @@ const EscalationDetails = () => {
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{escalation.resolutionETA}</div>
+            <div className="text-2xl font-bold">{escalation.resolution_eta}</div>
             <p className="text-xs text-muted-foreground">Expected resolution</p>
           </CardContent>
         </Card>
@@ -214,7 +204,7 @@ const EscalationDetails = () => {
                   <Calendar className="h-5 w-5 text-muted-foreground" />
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Date Raised</p>
-                    <p className="font-medium">{escalation.dateRaised}</p>
+                    <p className="font-medium">{escalation.date_raised}</p>
                   </div>
                 </div>
               </div>
@@ -241,7 +231,7 @@ const EscalationDetails = () => {
                   <Clock className="h-5 w-5 text-muted-foreground" />
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Resolution ETA</p>
-                    <p className="font-medium">{escalation.resolutionETA}</p>
+                    <p className="font-medium">{escalation.resolution_eta}</p>
                   </div>
                 </div>
               </div>

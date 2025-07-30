@@ -1,7 +1,7 @@
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from domain.models import Base
+from src.domain.models import Base
 import os
 
 SQLALCHEMY_DATABASE_URI = os.getenv(

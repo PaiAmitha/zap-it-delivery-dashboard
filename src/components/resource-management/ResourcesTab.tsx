@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,83 +6,96 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Search, Filter, Plus, Eye, Edit2, ChevronLeft, ChevronRight } from "lucide-react";
 import { useState, useEffect } from "react";
-import { AddEditEmployeeModal } from "@/components/resources/AddEditEmployeeModal";
+import { AddEditResourceModal } from "../resources/AddEditResourceModal";
+import { createResource } from "@/lib/api";
 import { useNavigate } from "react-router-dom";
-import { getEmployees } from "@/lib/api";
+import { getResources, updateResource } from "@/lib/api";
 
 export const ResourcesTab = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterDepartment, setFilterDepartment] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
-  const [employees, setEmployees] = useState<any[]>([]);
+  const [resources, setResources] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [selectedEmployee, setSelectedEmployee] = useState<any>(null);
+  const [selectedResource, setSelectedResource] = useState<any>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
   useEffect(() => {
-    const fetchEmployees = async () => {
+    const fetchResources = async () => {
+      setLoading(true);
+      setError(null);
       try {
         const token = localStorage.getItem('token') || '';
-        const result = await getEmployees(token);
-        setEmployees(Array.isArray(result) ? result : []);
-      } catch (err) {
-        // Optionally handle error
+        const params: any = {
+          search: searchTerm,
+          department: filterDepartment !== 'all' ? filterDepartment : undefined,
+          status: filterStatus !== 'all' ? filterStatus : undefined,
+          page: currentPage,
+          pageSize: itemsPerPage
+        };
+        const result = await getResources(token, params);
+        setResources((result as any).resources || []);
+      } catch (err: any) {
+        setError(err?.message || 'Failed to fetch resources');
+      } finally {
+        setLoading(false);
       }
     };
-    fetchEmployees();
-  }, []);
+    fetchResources();
+  }, [searchTerm, filterDepartment, filterStatus, currentPage]);
 
-  const filteredEmployees = employees.filter(employee => {
-    const matchesSearch = employee.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         employee.employeeId?.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesDepartment = filterDepartment === "all" || employee.department === filterDepartment;
-    
-    const matchesStatus = filterStatus === "all" || 
-                         (filterStatus === "billable" && employee.billableStatus) ||
-                         (filterStatus === "non-billable" && !employee.billableStatus);
-    
-    return matchesSearch && matchesDepartment && matchesStatus;
-  });
 
-  // Pagination logic
-  const totalPages = Math.ceil(filteredEmployees.length / itemsPerPage);
+
+  // Remove duplicate resource fetch effect
+
+  // Pagination logic (from backend)
+  const totalPages = Math.ceil(resources.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedEmployees = filteredEmployees.slice(startIndex, startIndex + itemsPerPage);
+  const paginatedResources = resources;
 
-  const handleAddEmployee = () => {
-    setSelectedEmployee(null);
+  const handleAddResource = () => {
+    setSelectedResource(null);
     setIsAddModalOpen(true);
   };
 
-  const handleEditEmployee = (employee: any) => {
-    setSelectedEmployee(employee);
+  const handleEditResource = (resource: any) => {
+    setSelectedResource(resource);
     setIsEditModalOpen(true);
   };
 
-  const handleViewEmployee = (employee: any) => {
-    navigate(`/resource-view/${employee.employeeId}`);
+  const handleViewResource = (resource: any) => {
+    navigate(`/resource-details/${resource.resourceId}`);
   };
 
-  const handleSaveEmployee = (data: any) => {
-    if (selectedEmployee) {
-      setEmployees(prev => prev.map(emp => 
-        emp.employeeId === selectedEmployee.employeeId ? { ...emp, ...data } : emp
-      ));
-    } else {
-      const newEmployee = {
-        ...data,
-        employeeId: `EMP${String(employees.length + 1).padStart(3, '0')}`,
-        billableStatus: data.billableStatus === "Billable",
+  const handleSaveResource = async (data: any) => {
+    const token = localStorage.getItem("token") || "";
+    try {
+      if (selectedResource) {
+        await updateResource(token, selectedResource.resourceId, data);
+      } else {
+        await createResource(token, data);
+      }
+      // Refetch resources after add/edit
+      const params: any = {
+        search: searchTerm,
+        department: filterDepartment !== 'all' ? filterDepartment : undefined,
+        status: filterStatus !== 'all' ? filterStatus : undefined,
+        page: currentPage,
+        pageSize: itemsPerPage
       };
-      setEmployees(prev => [...prev, newEmployee]);
+      const result = await getResources(token, params);
+      setResources((result as any).resources || []);
+    } catch (err) {
+      setError(err?.message || 'Failed to save resource');
     }
     setIsAddModalOpen(false);
     setIsEditModalOpen(false);
-    setSelectedEmployee(null);
+    setSelectedResource(null);
   };
 
   const formatCurrency = (amount: number) => `$${amount?.toLocaleString() || '0'}`;
@@ -94,11 +106,11 @@ export const ResourcesTab = () => {
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-6">
           <div>
             <CardTitle className="text-xl font-semibold text-gray-900">Master Resource Directory</CardTitle>
-            <p className="text-gray-600 text-sm mt-1">Comprehensive employee records and management</p>
+            <p className="text-gray-600 text-sm mt-1">Comprehensive resource records and management</p>
           </div>
-          <Button onClick={handleAddEmployee} className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 shadow-lg hover:shadow-xl transition-all duration-200">
+          <Button onClick={handleAddResource} className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 shadow-lg hover:shadow-xl transition-all duration-200">
             <Plus className="h-4 w-4" />
-            Add Employee
+            Add Resource
           </Button>
         </CardHeader>
         <CardContent>
@@ -107,7 +119,7 @@ export const ResourcesTab = () => {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
-                placeholder="Search employees..."
+                placeholder="Search resources..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10 bg-white shadow-sm border-gray-300 focus:border-blue-500 focus:ring-blue-500"
@@ -142,7 +154,7 @@ export const ResourcesTab = () => {
             </Button>
           </div>
 
-          {/* Enhanced Employee Records Table */}
+          {/* Enhanced Resource Records Table */}
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
             <div className="max-h-[600px] overflow-y-auto">
               <Table>
@@ -159,60 +171,104 @@ export const ResourcesTab = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {paginatedEmployees.map((employee, index) => (
-                    <TableRow key={employee.employeeId} className="hover:bg-blue-50/50 transition-colors duration-200">
-                      <TableCell className="font-medium text-blue-600">{employee.employeeId}</TableCell>
-                      <TableCell>
-                        <div>
-                          <div className="font-medium text-gray-900">{employee.fullName}</div>
-                          <div className="text-sm text-gray-500">{employee.location}</div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-gray-700">{employee.designation}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="text-xs">
-                          {employee.department}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-sm">
-                          <div className="font-medium text-gray-900">{employee.primarySkill}</div>
-                          <div className="text-gray-500">{employee.skillCategory}</div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge 
-                          variant={employee.billableStatus ? "default" : "secondary"}
-                          className={employee.billableStatus ? "bg-green-100 text-green-800 hover:bg-green-200" : "bg-gray-100 text-gray-800 hover:bg-gray-200"}
-                        >
-                          {employee.billableStatus ? "Billable" : "Non-Billable"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="font-medium text-gray-900">
-                        {formatCurrency(employee.monthlySalaryCost)}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex justify-center gap-2">
-                          <Button 
-                            size="sm" 
-                            variant="outline" 
-                            onClick={() => handleViewEmployee(employee)}
-                            className="hover:bg-blue-50 hover:border-blue-300 hover:text-blue-600 transition-all duration-200"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            variant="outline" 
-                            onClick={() => handleEditEmployee(employee)}
-                            className="hover:bg-green-50 hover:border-green-300 hover:text-green-600 transition-all duration-200"
-                          >
-                            <Edit2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={9} className="text-center text-gray-500">Loading resources...</TableCell>
                     </TableRow>
-                  ))}
+                  ) : error ? (
+                    <TableRow>
+                      <TableCell colSpan={9} className="text-center text-red-500">{error}</TableCell>
+                    </TableRow>
+                  ) : paginatedResources.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={9} className="text-center text-gray-500">No resources found.</TableCell>
+                    </TableRow>
+                  ) : (
+                    paginatedResources.map((resource, index) => (
+                      <TableRow key={resource.resourceId} className="hover:bg-blue-50/50 transition-colors duration-200">
+                        <TableCell className="font-medium text-blue-600">{resource.employeeId}</TableCell>
+                        <TableCell>
+                          <div>
+                            <div className="font-medium text-gray-900">{resource.fullName}</div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-gray-700">{resource.designation}</TableCell>
+                        <TableCell className="text-gray-700">{resource.department}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="text-xs">
+                            {Array.isArray(resource.skills) ? resource.skills.join(', ') : resource.skills}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-sm">
+                            <div className="font-medium text-gray-900">{resource.status}</div>
+                            <div className="text-gray-500">{resource.skillCategory}</div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge 
+                            variant={resource.billableStatus ? "default" : "secondary"}
+                            className={resource.billableStatus ? "bg-green-100 text-green-800 hover:bg-green-200" : "bg-gray-100 text-gray-800 hover:bg-gray-200"}
+                          >
+                            {resource.billableStatus ? "Billable" : "Non-Billable"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="font-medium text-gray-900">
+                          {formatCurrency(resource.monthlySalaryCost ?? resource.monthly_cost ?? resource.monthlyCost)}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex justify-center gap-2">
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              onClick={() => handleViewResource(resource)}
+                              className="hover:bg-blue-50 hover:border-blue-300 hover:text-blue-600 transition-all duration-200"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              onClick={() => handleEditResource(resource)}
+                              className="hover:bg-green-50 hover:border-green-300 hover:text-green-600 transition-all duration-200"
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={async () => {
+                                if (!window.confirm('Are you sure you want to delete this resource?')) return;
+                                setLoading(true);
+                                setError(null);
+                                try {
+                                  const token = localStorage.getItem('token') || '';
+                                  await import("@/lib/api").then(api => api.deleteResource(token, resource.resourceId));
+                                  // Refetch resources after delete
+                                  const params: any = {
+                                    search: searchTerm,
+                                    department: filterDepartment !== 'all' ? filterDepartment : undefined,
+                                    status: filterStatus !== 'all' ? filterStatus : undefined,
+                                    page: currentPage,
+                                    pageSize: itemsPerPage
+                                  };
+                                  const result = await getResources(token, params);
+                                  setResources((result as any).resources || []);
+                                } catch (err: any) {
+                                  setError(err?.message || 'Failed to delete resource');
+                                } finally {
+                                  setLoading(false);
+                                }
+                              }}
+                              className="hover:bg-red-50 hover:border-red-300 hover:text-red-600 transition-all duration-200"
+                            >
+                              Delete
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
                 </TableBody>
               </Table>
             </div>
@@ -221,7 +277,7 @@ export const ResourcesTab = () => {
           {/* Enhanced Pagination */}
           <div className="flex items-center justify-between mt-6 p-4 bg-gray-50/50 rounded-xl">
             <div className="text-sm text-gray-600">
-              Showing {startIndex + 1}-{Math.min(startIndex + itemsPerPage, filteredEmployees.length)} of {filteredEmployees.length} employees
+              Showing {startIndex + 1}-{Math.min(startIndex + itemsPerPage, paginatedResources.length)} of {paginatedResources.length} resources
             </div>
             <div className="flex items-center gap-2">
               <Button
@@ -268,18 +324,18 @@ export const ResourcesTab = () => {
       </Card>
 
       {/* Modals */}
-      <AddEditEmployeeModal
+      <AddEditResourceModal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
-        onSave={handleSaveEmployee}
+        onSave={handleSaveResource}
         mode="add"
       />
 
-      <AddEditEmployeeModal
+      <AddEditResourceModal
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
-        onSave={handleSaveEmployee}
-        employee={selectedEmployee}
+        onSave={handleSaveResource}
+        resource={selectedResource}
         mode="edit"
       />
     </div>

@@ -1,5 +1,6 @@
 
 import { useState } from "react";
+import { createEscalation } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,9 +12,10 @@ import { useToast } from "@/hooks/use-toast";
 interface CreateEscalationDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onCreate?: (newEscalation: any) => void;
 }
 
-export const CreateEscalationDialog = ({ open, onOpenChange }: CreateEscalationDialogProps) => {
+export const CreateEscalationDialog = ({ open, onOpenChange, onCreate }: CreateEscalationDialogProps) => {
   const { toast } = useToast();
   const [formData, setFormData] = useState({
     title: "",
@@ -22,8 +24,8 @@ export const CreateEscalationDialog = ({ open, onOpenChange }: CreateEscalationD
     project: "",
     owner: "",
     status: "Open",
-    dateRaised: new Date().toISOString().split('T')[0],
-    resolutionETA: "",
+    date_raised: new Date().toISOString().split('T')[0],
+    resolution_eta: "",
     description: "",
     businessImpact: "",
     rootCause: "",
@@ -31,7 +33,7 @@ export const CreateEscalationDialog = ({ open, onOpenChange }: CreateEscalationD
     nextSteps: "",
     stakeholders: "",
     budget: "",
-    riskLevel: "Medium",
+    risk_level: "Medium",
     category: "Technical",
     region: "North America"
   });
@@ -43,32 +45,57 @@ export const CreateEscalationDialog = ({ open, onOpenChange }: CreateEscalationD
     }));
   };
 
-  const handleSubmit = () => {
-    toast({
-      title: "Escalation Created",
-      description: "The new escalation has been created successfully.",
-    });
-    onOpenChange(false);
-    setFormData({
-      title: "",
-      priority: "Medium",
-      customer: "",
-      project: "",
-      owner: "",
-      status: "Open",
-      dateRaised: new Date().toISOString().split('T')[0],
-      resolutionETA: "",
-      description: "",
-      businessImpact: "",
-      rootCause: "",
-      actionTaken: "",
-      nextSteps: "",
-      stakeholders: "",
-      budget: "",
-      riskLevel: "Medium",
-      category: "Technical",
-      region: "North America"
-    });
+  const handleSubmit = async () => {
+    try {
+      const token = localStorage.getItem('token') || '';
+      // Map camelCase to snake_case for backend
+      const payload = {
+        title: formData.title,
+        customer: formData.customer,
+        project: formData.project,
+        owner: formData.owner,
+        priority: formData.priority,
+        status: formData.status,
+        date_raised: formData.date_raised,
+        resolution_eta: formData.resolution_eta,
+        description: formData.description,
+        risk_level: formData.risk_level,
+        // Add more mappings as needed
+      };
+      const newEscalation = await createEscalation(token, payload);
+      toast({
+        title: "Escalation Created",
+        description: "The new escalation has been created successfully.",
+      });
+      if (onCreate) { onCreate(newEscalation); }
+      onOpenChange(false);
+      setFormData({
+        title: "",
+        priority: "Medium",
+        customer: "",
+        project: "",
+        owner: "",
+        status: "Open",
+        date_raised: new Date().toISOString().split('T')[0],
+        resolution_eta: "",
+        description: "",
+        businessImpact: "",
+        rootCause: "",
+        actionTaken: "",
+        nextSteps: "",
+        stakeholders: "",
+        budget: "",
+        risk_level: "Medium",
+        category: "Technical",
+        region: "North America"
+      });
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: err?.message || 'Failed to create escalation',
+        variant: 'destructive',
+      });
+    }
   };
 
   return (
@@ -181,7 +208,7 @@ export const CreateEscalationDialog = ({ open, onOpenChange }: CreateEscalationD
 
             <div className="space-y-2">
               <Label htmlFor="riskLevel">Risk Level</Label>
-              <Select value={formData.riskLevel} onValueChange={(value) => handleInputChange("riskLevel", value)}>
+              <Select value={formData.risk_level} onValueChange={(value) => handleInputChange("risk_level", value)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -197,20 +224,20 @@ export const CreateEscalationDialog = ({ open, onOpenChange }: CreateEscalationD
             <div className="space-y-2">
               <Label htmlFor="dateRaised">Date Raised</Label>
               <Input
-                id="dateRaised"
+                id="date_raised"
                 type="date"
-                value={formData.dateRaised}
-                onChange={(e) => handleInputChange("dateRaised", e.target.value)}
+                value={formData.date_raised}
+                onChange={(e) => handleInputChange("date_raised", e.target.value)}
               />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="resolutionETA">Resolution ETA *</Label>
               <Input
-                id="resolutionETA"
+                id="resolution_eta"
                 type="date"
-                value={formData.resolutionETA}
-                onChange={(e) => handleInputChange("resolutionETA", e.target.value)}
+                value={formData.resolution_eta}
+                onChange={(e) => handleInputChange("resolution_eta", e.target.value)}
               />
             </div>
 

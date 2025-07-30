@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, Target } from "lucide-react";
 import { useState, useEffect } from "react";
-import { AddEditEmployeeModal } from "@/components/resources/AddEditEmployeeModal";
+import { AddEditResourceModal } from "@/components/resources/AddEditResourceModal";
 import { ProjectAllocationModal } from "@/components/resource-management/ProjectAllocationModal";
 import userData from "@/data/userData.json";
 
@@ -91,7 +91,7 @@ export const RMQuickActionsTab = () => {
       </div>
 
       {/* Modals */}
-      <AddEditEmployeeModal
+      <AddEditResourceModal
         isOpen={isAddResourceModalOpen}
         onClose={() => setIsAddResourceModalOpen(false)}
         onSave={(data) => {

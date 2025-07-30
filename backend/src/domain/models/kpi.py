@@ -3,6 +3,12 @@ from sqlalchemy.orm import relationship
 from .base import Base
 
 class KPI(Base):
+    name = Column(String, nullable=False)
+    value = Column(Float)
+    target = Column(Float)
+    status = Column(String)
+    description = Column(String)
+    project_id = Column(String)
     __tablename__ = 'kpis'
     id = Column(Integer, primary_key=True)
     title = Column(String)

@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { X, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
-import { getProjects, getEmployees } from "@/lib/api";
+import { getProjects, getResources } from "@/lib/api";
 
 const ProjectAllocation = () => {
   const { toast } = useToast();
@@ -52,8 +52,8 @@ const ProjectAllocation = () => {
         const token = localStorage.getItem('token') || '';
         const projectsData = await getProjects(token) as { projects?: any[] } | any[];
         setProjects(Array.isArray(projectsData) ? projectsData : (projectsData.projects || []));
-        const employeesData = await getEmployees(token) as { employees?: any[] } | any[];
-        setResources(Array.isArray(employeesData) ? employeesData : (employeesData.employees || []));
+        const resourcesData = await getResources(token) as { resources?: any[] } | any[];
+        setResources(Array.isArray(resourcesData) ? resourcesData : (resourcesData.resources || []));
       } catch (err: any) {
         setError(err?.message || 'Failed to fetch allocation data');
       } finally {
@@ -116,8 +116,8 @@ const ProjectAllocation = () => {
                   </SelectTrigger>
                   <SelectContent>
                     {resources.map((resource) => (
-                      <SelectItem key={resource.employee_id} value={resource.employee_id}>
-                        {resource.full_name} - {resource.designation}
+                      <SelectItem key={resource.resourceId} value={resource.resourceId}>
+                        {resource.fullName} - {resource.designation}
                       </SelectItem>
                     ))}
                   </SelectContent>

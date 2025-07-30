@@ -9,10 +9,11 @@ import userData from "@/data/userData.json";
 
 interface HRDataFormProps {
   formData: any;
-  handleInputChange: (field: string, value: string) => void;
+  onChange: (field: string, value: string) => void;
 }
 
-export const HRDataForm = ({ formData, handleInputChange }: HRDataFormProps) => {
+export const HRDataForm = ({ formData, onChange }: HRDataFormProps) => {
+  const handleInputChange = onChange;
   const [hasHRAccess, setHasHRAccess] = useState(false);
 
   useEffect(() => {

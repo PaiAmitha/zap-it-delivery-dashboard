@@ -15,8 +15,9 @@ interface Escalation {
   owner: string;
   priority: string;
   status: string;
-  dateRaised: string;
-  resolutionETA: string;
+  date_raised: string;
+  resolution_eta: string;
+  risk_level?: string;
 }
 
 interface EscalationTableProps {
@@ -51,11 +52,6 @@ export const EscalationTable = ({ escalations, onEdit, onDelete }: EscalationTab
 
   const handleDelete = (id: string) => {
     onDelete(id);
-    toast({
-      title: "Escalation Deleted",
-      description: "The escalation has been successfully deleted.",
-      variant: "destructive",
-    });
   };
 
   const handleRowClick = (escalationId: string, event: React.MouseEvent) => {
@@ -103,8 +99,8 @@ export const EscalationTable = ({ escalations, onEdit, onDelete }: EscalationTab
                   {escalation.status}
                 </span>
               </TableCell>
-              <TableCell>{escalation.dateRaised}</TableCell>
-              <TableCell>{escalation.resolutionETA}</TableCell>
+              <TableCell>{escalation.date_raised}</TableCell>
+              <TableCell>{escalation.resolution_eta}</TableCell>
               <TableCell>
                 <div className="flex items-center gap-2">
                   <Button

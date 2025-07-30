@@ -2,6 +2,14 @@ from sqlalchemy import Column, Integer, String, Float, ForeignKey, Date, Boolean
 from .base import Base
 
 class Intern(Base):
+    name = Column(String, nullable=False)
+    email = Column(String)
+    university = Column(String)
+    status = Column(String)
+    start_date = Column(String)
+    end_date = Column(String)
+    conversion_status = Column(String)
+    location = Column(String)
     __tablename__ = 'interns'
     id = Column(Integer, primary_key=True)
     employee_id = Column(String)

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createProject } from "@/lib/api";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -99,62 +100,136 @@ export const CreateProjectDialog = ({ open, onOpenChange }: CreateProjectDialogP
   const [milestones, setMilestones] = useState<Milestone[]>([]);
   const [risks, setRisks] = useState<Risk[]>([]);
 
-  const handleSubmit = () => {
-    toast({
-      title: "Project Created",
-      description: "Your project has been created successfully.",
-    });
-    onOpenChange(false);
-    // Reset form
-    setFormData({
-      projectName: "",
-      clientName: "",
-      description: "",
-      startDate: "",
-      endDate: "",
-      status: "Planning",
-      projectType: "Fixed Bid",
-      duration: "",
-      currentStage: "Planning",
-      progress: 0,
-      health: "Healthy",
-      engineeringManager: "",
-      priority: "",
-      projectBudget: "",
-      requiredSkills: "",
-      sprintVelocity: 0,
-      predictability: 0,
-      defectLeakage: 0,
-      onTimeDelivery: 0,
-      currentSprint: "",
-      sprintProgress: 0,
-      burndownRate: "On Track",
-      storyPointsComplete: 0,
-      storyPointsTotal: 0,
-      qualityScore: 0,
-      customerSatisfaction: 0,
-      featureCompletionRate: 0,
-      velocityTrend: "Stable",
-      codeCoverage: 0,
-      performanceScore: 0,
-      testCoverage: 0,
-      buildSuccessRate: 0,
-      deploymentFrequency: "Weekly",
-      leadTime: "",
-      mttr: "",
-      technicalDebt: "Low",
-      maintainability: "A",
-      securityScore: 0,
-      dependenciesUpdated: "Current",
-      teamSize: 0,
-      retentionRate: 0,
-      satisfactionScore: 0,
-      trainingHours: 0,
-      utilization: 0
-    });
-    setTeamMembers([]);
-    setMilestones([]);
-    setRisks([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+
+  const handleSubmit = async () => {
+    setLoading(true);
+    setError(null);
+    setSuccess(false);
+    try {
+      const token = localStorage.getItem('token') || '';
+      // Map frontend fields to backend expected fields
+      const payload = {
+        // Project Overview
+        name: formData.projectName,
+        description: formData.description,
+        status: formData.status,
+        priority: formData.priority,
+        budget: formData.projectBudget ? Number(formData.projectBudget.replace(/[^\d.]/g, "")) : undefined,
+        required_skills: formData.requiredSkills,
+        start_date: formData.startDate,
+        end_date: formData.endDate,
+        health_status: formData.health,
+        project_type: formData.projectType,
+        current_stage: formData.currentStage,
+        progress: formData.progress,
+        engineering_manager: formData.engineeringManager,
+        // Delivery Metrics
+        sprint_velocity: formData.sprintVelocity,
+        predictability: formData.predictability,
+        defect_leakage: formData.defectLeakage,
+        on_time_delivery: formData.onTimeDelivery,
+        current_sprint: formData.currentSprint,
+        sprint_progress: formData.sprintProgress,
+        burndown_rate: formData.burndownRate,
+        story_points_complete: formData.storyPointsComplete,
+        story_points_total: formData.storyPointsTotal,
+        quality_score: formData.qualityScore,
+        customer_satisfaction: formData.customerSatisfaction,
+        feature_completion_rate: formData.featureCompletionRate,
+        velocity_trend: formData.velocityTrend,
+        // Engineering Metrics
+        code_coverage: formData.codeCoverage,
+        performance_score: formData.performanceScore,
+        test_coverage: formData.testCoverage,
+        build_success_rate: formData.buildSuccessRate,
+        deployment_frequency: formData.deploymentFrequency,
+        lead_time: formData.leadTime,
+        mttr: formData.mttr,
+        technical_debt: formData.technicalDebt,
+        maintainability: formData.maintainability,
+        security_score: formData.securityScore,
+        dependencies_updated: formData.dependenciesUpdated,
+        // Team Metrics
+        team_size: formData.teamSize,
+        retention_rate: formData.retentionRate,
+        satisfaction_score: formData.satisfactionScore,
+        training_hours: formData.trainingHours,
+        utilization: formData.utilization,
+        // Relationships
+        teamMembers,
+        milestones,
+        risks,
+      };
+      await createProject(token, payload);
+      setSuccess(true);
+      toast({
+        title: "Project Created Successfully",
+        description: "New project has been created in the system.",
+      });
+      onOpenChange(false);
+      // Reset form
+      setFormData({
+        projectName: "",
+        clientName: "",
+        description: "",
+        startDate: "",
+        endDate: "",
+        status: "Planning",
+        projectType: "Fixed Bid",
+        duration: "",
+        currentStage: "Planning",
+        progress: 0,
+        health: "Healthy",
+        engineeringManager: "",
+        priority: "",
+        projectBudget: "",
+        requiredSkills: "",
+        sprintVelocity: 0,
+        predictability: 0,
+        defectLeakage: 0,
+        onTimeDelivery: 0,
+        currentSprint: "",
+        sprintProgress: 0,
+        burndownRate: "On Track",
+        storyPointsComplete: 0,
+        storyPointsTotal: 0,
+        qualityScore: 0,
+        customerSatisfaction: 0,
+        featureCompletionRate: 0,
+        velocityTrend: "Stable",
+        codeCoverage: 0,
+        performanceScore: 0,
+        testCoverage: 0,
+        buildSuccessRate: 0,
+        deploymentFrequency: "Weekly",
+        leadTime: "",
+        mttr: "",
+        technicalDebt: "Low",
+        maintainability: "A",
+        securityScore: 0,
+        dependenciesUpdated: "Current",
+        teamSize: 0,
+        retentionRate: 0,
+        satisfactionScore: 0,
+        trainingHours: 0,
+        utilization: 0
+      });
+      setTeamMembers([]);
+      setMilestones([]);
+      setRisks([]);
+    } catch (err: any) {
+      setError(err?.message || 'Failed to create project');
+      toast({
+        title: "Failed to Create Project",
+        description: err?.message || 'Failed to create project',
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -229,13 +304,15 @@ export const CreateProjectDialog = ({ open, onOpenChange }: CreateProjectDialogP
 
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row justify-end gap-4 pt-4 border-t">
-          <Button variant="outline" onClick={() => onOpenChange(false)} className="w-full sm:w-auto">
+          <Button variant="outline" onClick={() => onOpenChange(false)} className="w-full sm:w-auto" disabled={loading}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit} className="w-full sm:w-auto">
-            Create Project
+          <Button onClick={handleSubmit} className="w-full sm:w-auto" disabled={loading}>
+            {loading ? "Creating..." : "Create Project"}
           </Button>
         </div>
+        {error && <div className="text-red-500 mt-2">{error}</div>}
+        {success && <div className="text-green-600 mt-2">Project created successfully!</div>}
       </DialogContent>
     </Dialog>
   );

@@ -60,26 +60,42 @@ const Projects = () => {
     }
   }, [location.state]);
 
-  const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [projects, setProjects] = useState<Project[]>([]);
+  // Normalize backend project data to ensure customer, teamLead, teamSize fields are set
+  function normalizeProjects(rawProjects: any[]): Project[] {
+    return rawProjects.map((p: any) => ({
+      id: p.id,
+      name: p.name,
+      description: p.description,
+      customer: p.customer || p.client || p.project_client || "",
+      category: p.category || p.project_type || "",
+      status: p.status || "On Track",
+      progress: typeof p.progress === "number" ? p.progress : 0,
+      teamSize: p.teamSize || p.team_size || (p.teamMembers ? p.teamMembers.length : 0) || 0,
+      teamLead: p.teamLead || p.team_lead || (p.teamMembers && p.teamMembers[0]?.name) || "",
+    }));
+  }
 
+  const fetchProjects = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      // TODO: Replace with real auth token logic
+      const token = localStorage.getItem('token') || '';
+      const data = await import("@/lib/api").then(m => m.getProjects(token));
+      // If backend returns { projects: [...] }, use data.projects
+      const projectArray = Array.isArray(data) ? data : (data.projects || []);
+      setProjects(normalizeProjects(projectArray));
+    } catch (err: any) {
+      setError(err?.message || 'Failed to load projects');
+    } finally {
+      setLoading(false);
+    }
+  };
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        // TODO: Replace with real auth token logic
-        const token = localStorage.getItem('token') || '';
-        const data = await import("@/lib/api").then(m => m.getProjects(token));
-        setProjects((data as Project[]) || []);
-      } catch (err: any) {
-        setError(err?.message || 'Failed to load projects');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
+    fetchProjects();
   }, []);
 
   if (loading) return <div className="p-8 text-center">Loading...</div>;
@@ -255,7 +271,10 @@ const Projects = () => {
 
       <CreateProjectDialog 
         open={createDialogOpen} 
-        onOpenChange={setCreateDialogOpen} 
+        onOpenChange={(open) => {
+          setCreateDialogOpen(open);
+          if (!open) { fetchProjects(); } // Refresh list after dialog closes
+        }} 
       />
     </div>
   );

@@ -7,12 +7,27 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { MultiSelect } from "@/components/ui/multi-select";
 
-interface ResourceManagementFormProps {
-  formData: any;
-  handleInputChange: (field: string, value: string | string[]) => void;
+
+interface ResourceFormData {
+  primarySkills: string[];
+  skillCategory: string;
+  billableStatus: "true" | "false";
+  currentEngagement: string;
+  projectName: string;
+  engagementDescription: string;
+  engagementStartDate: string;
+  engagementEndDate: string;
+  agingInNonBillable: string;
+  currentBenchStatus: "true" | "false";
+  engagementDetail: string;
 }
 
-export const ResourceManagementForm = ({ formData, handleInputChange }: ResourceManagementFormProps) => {
+interface ResourceManagementFormProps {
+  formData: ResourceFormData;
+  onChange: (field: keyof ResourceFormData, value: string | string[]) => void;
+}
+
+export const ResourceManagementForm = ({ formData, onChange }: ResourceManagementFormProps) => {
   const primarySkillOptions = [
     { label: "React.js", value: "React.js" },
     { label: "Node.js", value: "Node.js" },
@@ -53,15 +68,15 @@ export const ResourceManagementForm = ({ formData, handleInputChange }: Resource
                 <Label htmlFor="primarySkills">Primary Skills *</Label>
                 <MultiSelect
                   options={primarySkillOptions}
-                  selected={formData.primarySkills || []}
-                  onChange={(values) => handleInputChange("primarySkills", values)}
+                  selected={formData.primarySkills}
+                  onChange={(values) => onChange("primarySkills", values)}
                   placeholder="Select primary skills"
                   className="mt-1"
                 />
               </div>
               <div>
                 <Label htmlFor="skillCategory">Skill Category</Label>
-                <Select onValueChange={(value) => handleInputChange("skillCategory", value)}>
+                <Select onValueChange={(value) => onChange("skillCategory", value)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select skill category" />
                   </SelectTrigger>
@@ -74,7 +89,7 @@ export const ResourceManagementForm = ({ formData, handleInputChange }: Resource
               </div>
               <div>
                 <Label htmlFor="billableStatus">Billable Status</Label>
-                <Select onValueChange={(value) => handleInputChange("billableStatus", value)}>
+                <Select onValueChange={(value) => onChange("billableStatus", value as "true" | "false")}> 
                   <SelectTrigger>
                     <SelectValue placeholder="Select billable status" />
                   </SelectTrigger>
@@ -89,7 +104,7 @@ export const ResourceManagementForm = ({ formData, handleInputChange }: Resource
                 <Input
                   id="currentEngagement"
                   value={formData.currentEngagement}
-                  onChange={(e) => handleInputChange("currentEngagement", e.target.value)}
+                  onChange={(e) => onChange("currentEngagement", e.target.value)}
                 />
               </div>
               <div>
@@ -97,7 +112,7 @@ export const ResourceManagementForm = ({ formData, handleInputChange }: Resource
                 <Input
                   id="projectName"
                   value={formData.projectName}
-                  onChange={(e) => handleInputChange("projectName", e.target.value)}
+                  onChange={(e) => onChange("projectName", e.target.value)}
                 />
               </div>
               <div className="md:col-span-2">
@@ -105,7 +120,7 @@ export const ResourceManagementForm = ({ formData, handleInputChange }: Resource
                 <Textarea
                   id="engagementDescription"
                   value={formData.engagementDescription}
-                  onChange={(e) => handleInputChange("engagementDescription", e.target.value)}
+                  onChange={(e) => onChange("engagementDescription", e.target.value)}
                 />
               </div>
               <div>
@@ -114,7 +129,7 @@ export const ResourceManagementForm = ({ formData, handleInputChange }: Resource
                   id="engagementStartDate"
                   type="date"
                   value={formData.engagementStartDate}
-                  onChange={(e) => handleInputChange("engagementStartDate", e.target.value)}
+                  onChange={(e) => onChange("engagementStartDate", e.target.value)}
                 />
               </div>
               <div>
@@ -123,7 +138,7 @@ export const ResourceManagementForm = ({ formData, handleInputChange }: Resource
                   id="engagementEndDate"
                   type="date"
                   value={formData.engagementEndDate}
-                  onChange={(e) => handleInputChange("engagementEndDate", e.target.value)}
+                  onChange={(e) => onChange("engagementEndDate", e.target.value)}
                 />
               </div>
               <div>
@@ -132,12 +147,12 @@ export const ResourceManagementForm = ({ formData, handleInputChange }: Resource
                   id="agingInNonBillable"
                   type="number"
                   value={formData.agingInNonBillable}
-                  onChange={(e) => handleInputChange("agingInNonBillable", e.target.value)}
+                  onChange={(e) => onChange("agingInNonBillable", e.target.value)}
                 />
               </div>
               <div>
                 <Label htmlFor="currentBenchStatus">Current Bench Status</Label>
-                <Select onValueChange={(value) => handleInputChange("currentBenchStatus", value)}>
+                <Select onValueChange={(value) => onChange("currentBenchStatus", value as "true" | "false")}> 
                   <SelectTrigger>
                     <SelectValue placeholder="Select bench status" />
                   </SelectTrigger>
@@ -152,7 +167,7 @@ export const ResourceManagementForm = ({ formData, handleInputChange }: Resource
                 <Textarea
                   id="engagementDetail"
                   value={formData.engagementDetail}
-                  onChange={(e) => handleInputChange("engagementDetail", e.target.value)}
+                  onChange={(e) => onChange("engagementDetail", e.target.value)}
                 />
               </div>
             </div>

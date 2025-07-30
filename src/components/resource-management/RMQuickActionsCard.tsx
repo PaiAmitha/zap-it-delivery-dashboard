@@ -2,8 +2,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, Target, Users, FolderPlus } from "lucide-react";
+import { Link } from "react-router-dom";
 import { useState } from "react";
-import { AddEditEmployeeModal } from "@/components/resources/AddEditEmployeeModal";
+import { AddEditResourceModal } from "@/components/resources/AddEditResourceModal";
 import { ProjectAllocationModal } from "@/components/resource-management/ProjectAllocationModal";
 
 export const RMQuickActionsCard = () => {
@@ -29,8 +30,7 @@ export const RMQuickActionsCard = () => {
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Add Resource Widget */}
-          <div className="group relative overflow-hidden bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-100 hover:border-blue-200 transition-all duration-300 cursor-pointer hover:shadow-lg"
-               onClick={() => setIsAddResourceModalOpen(true)}>
+          <Link to="/add-resource" className="group relative overflow-hidden bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-100 hover:border-blue-200 transition-all duration-300 cursor-pointer hover:shadow-lg" style={{ textDecoration: 'none' }}>
             <div className="absolute top-0 right-0 w-20 h-20 bg-blue-500/10 rounded-full -translate-y-10 translate-x-10 group-hover:scale-150 transition-transform duration-500"></div>
             <div className="relative">
               <div className="flex items-center gap-3 mb-3">
@@ -44,15 +44,12 @@ export const RMQuickActionsCard = () => {
               </p>
               <Button 
                 className="w-full bg-blue-500 hover:bg-blue-600 text-white shadow-md hover:shadow-lg transition-all duration-200"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsAddResourceModalOpen(true);
-                }}
+                type="button"
               >
                 Add Resource
               </Button>
             </div>
-          </div>
+          </Link>
 
           {/* Project Allocation Widget */}
           <div className="group relative overflow-hidden bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-6 border border-green-100 hover:border-green-200 transition-all duration-300 cursor-pointer hover:shadow-lg"
@@ -84,7 +81,7 @@ export const RMQuickActionsCard = () => {
         </div>
 
         {/* Modals */}
-        <AddEditEmployeeModal
+        <AddEditResourceModal
           isOpen={isAddResourceModalOpen}
           onClose={() => setIsAddResourceModalOpen(false)}
           onSave={(data) => {

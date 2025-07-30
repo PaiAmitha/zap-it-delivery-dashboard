@@ -75,8 +75,7 @@ const App = () => (
             <Route path="escalations/:id" element={<EscalationDetails />} />
             <Route path="resources" element={<Resources />} />
             <Route path="project-details/:projectId" element={<ProjectDetails />} />
-            <Route path="resource-details/:type" element={<ResourceDetails />} />
-            <Route path="resource-view/:resourceId" element={<ResourceView />} />
+            <Route path="resource-details/:id" element={<ResourceDetails />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>

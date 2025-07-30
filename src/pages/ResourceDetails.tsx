@@ -1,157 +1,69 @@
-import { useState, useEffect } from "react";
-import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
-import { BreadcrumbNavigation } from "@/components/layout/BreadcrumbNavigation";
-import { ResourceData } from "@/types/resource";
-import { ResourceTable } from "@/components/resources/ResourceTable";
-import { EditResourceModal } from "@/components/resources/EditResourceModal";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Clock, User } from "lucide-react";
-import { getEmployees } from "@/lib/api";
-import { Employee } from "@/types/employee";
+import { User, Mail, Phone, MapPin, Calendar, Briefcase, Award, Layers, CheckCircle, XCircle } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { getResource } from "@/lib/api";
+import { ResourceData } from "@/types/resource";
 
 const ResourceDetails = () => {
-  const { type } = useParams();
-  const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
-  const { toast } = useToast();
-  const [isEditing, setIsEditing] = useState(false);
-  const [resources, setResources] = useState<ResourceData[]>([]);
+  const { id } = useParams();
   const [selectedResource, setSelectedResource] = useState<ResourceData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const internId = searchParams.get('id');
+  const resourceId = id;
 
-  // Fetch resources from backend
   useEffect(() => {
-    const fetchResources = async () => {
+    const fetchResourceDetails = async () => {
       setLoading(true);
       setError(null);
       try {
         const token = localStorage.getItem('token') || '';
-        const data = await getEmployees(token) as { employees?: Employee[] } | Employee[];
-        const employeesList = Array.isArray(data) ? data : (data.employees || []);
-        // Map Employee[] to ResourceData[]
-        let mapped = employeesList.map(emp => ({
-          employeeId: emp.employee_id,
-          fullName: emp.full_name,
-          designation: emp.designation,
-          department: emp.department,
-          seniorityLevel: emp.experience_level,
-          experience: emp.years_of_experience,
-          location: emp.location,
-          joiningDate: emp.joining_date,
-          employmentType: emp.resource_type,
-          reportingManager: (emp as any).reporting_manager || '',
-          primarySkill: emp.primary_skills[0] || '',
-          skillCategory: 'Application Development', // Placeholder
-          billableStatus: emp.status === 'Billable',
-          currentEngagement: emp.status === 'Billable' ? 'Client Project' : 'Available',
-          projectName: emp.status === 'Billable' ? 'Current Project' : undefined,
-          engagementDescription: emp.status === 'Billable' ? 'Working on client project' : 'Available for assignment',
-          engagementStartDate: emp.bench_start_date ? undefined : '2025-01-01',
-          engagementEndDate: emp.bench_start_date ? undefined : '2025-12-31',
-          agingInNonBillable: emp.bench_days || 0,
-          currentBenchStatus: emp.status !== 'Billable',
-          engagementDetail: emp.status === 'Billable' ? 'Active Project Work' : 'Training/Available',
-          isIntern: false, // Set true if intern logic is available
-          internshipStartDate: undefined,
-          internshipEndDate: undefined,
-          assignedProject: undefined,
-          mentorName: undefined,
-          stipend: undefined,
-          monthlySalaryCost: emp.cost_rate,
-          billingRate: emp.billing_rate || undefined,
-          monthlyRevenueGenerated: emp.billing_rate || 0,
-          costCenter: emp.department,
-          totalYTDCost: emp.cost_rate * 12,
-          totalYTDRevenue: (emp.billing_rate || 0) * 12,
-        }));
-        // Filter based on type and intern ID if provided
-        if (type === "interns") {
-          mapped = mapped.filter(r => r.isIntern);
-          if (internId) {
-            mapped = mapped.filter(r => r.employeeId === internId);
-          }
-        } else if (type === "billable") {
-          mapped = mapped.filter(r => r.billableStatus && !r.isIntern);
-        } else if (type === "non-billable") {
-          mapped = mapped.filter(r => !r.billableStatus && !r.isIntern);
+        if (resourceId) {
+          const resource = await getResource(token, resourceId);
+          setSelectedResource(resource as ResourceData);
+        } else {
+          setSelectedResource(null);
         }
-        setResources(mapped);
       } catch (err: any) {
-        setError(err?.message || 'Failed to fetch resources');
+        setError(err?.message || 'Failed to fetch resource details');
       } finally {
         setLoading(false);
       }
     };
-    fetchResources();
-  }, [type, internId]);
+    fetchResourceDetails();
+  }, [resourceId]);
 
-  const getTypeTitle = () => {
-    if (type === "interns" && internId) {
-      const intern = resources.find(r => r.employeeId === internId);
-      return intern ? `Intern Details - ${intern.fullName}` : "Intern Details";
-    }
-    
-    switch (type) {
-      case "billable": return "Billable Resources";
-      case "non-billable": return "Non-Billable Resources";
-      case "interns": return "Intern Resources";
-      default: return "All Resources";
+  const navigate = useNavigate();
+  const [deleting, setDeleting] = useState(false);
+
+  const handleEdit = () => {
+    if (selectedResource) {
+      navigate(`/resource-details/edit/${selectedResource.resourceId}`);
     }
   };
 
-  const handleEdit = (resource: ResourceData) => {
-    setSelectedResource(resource);
-    setIsEditing(true);
-  };
-
-  const handleView = (resource: ResourceData) => {
-    navigate(`/resource-view/${resource.employeeId}`);
-  };
-
-  const handleSave = (updatedResource: ResourceData) => {
-    // Update the resources array with the new data
-    setResources(prev => 
-      prev.map(resource => 
-        resource.employeeId === updatedResource.employeeId 
-          ? updatedResource 
-          : resource
-      )
-    );
-    
-    toast({
-      title: "Success",
-      description: "Resource details updated successfully",
-    });
-    setIsEditing(false);
-    setSelectedResource(null);
-  };
-
-  const handleCancel = () => {
-    setIsEditing(false);
-    setSelectedResource(null);
-  };
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case "High": return "bg-red-100 text-red-800 border-red-200";
-      case "Medium": return "bg-yellow-100 text-yellow-800 border-yellow-200";
-      case "Low": return "bg-green-100 text-green-800 border-green-200";
-      default: return "bg-gray-100 text-gray-800 border-gray-200";
+  const handleDelete = async () => {
+    if (!selectedResource) return;
+    if (!window.confirm('Are you sure you want to delete this resource?')) return;
+    setDeleting(true);
+    try {
+      const token = localStorage.getItem('token') || '';
+      await import("@/lib/api").then(api => api.deleteResource(token, selectedResource.resourceId));
+      navigate('/resource-management');
+    } catch (err: any) {
+      alert(err?.message || 'Failed to delete resource');
+    } finally {
+      setDeleting(false);
     }
   };
 
   return (
-    <div className="space-y-6">
-      <BreadcrumbNavigation />
+    <div className="p-4 md:p-8">
       {loading && (
         <Card className="mx-1 sm:mx-0">
           <CardContent className="text-center py-8">
-            <p className="text-gray-500">Loading resources...</p>
+            <p className="text-gray-500">Loading resource...</p>
           </CardContent>
         </Card>
       )}
@@ -162,106 +74,180 @@ const ResourceDetails = () => {
           </CardContent>
         </Card>
       )}
-
-      {!loading && !error && (
-        <>
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">{getTypeTitle()}</h1>
-              <p className="text-gray-600">
-                {internId ? "Detailed view of intern information and performance" : `Detailed view and management of ${type} resources`}
-              </p>
-            </div>
-          </div>
-
-          <ResourceTable 
-            resources={resources} 
-            onEdit={handleEdit}
-            onView={handleView}
-          />
-
-          {/* Show upcoming projects only if not viewing a specific intern */}
-          {!internId && (
-            <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-blue-900">
-                  <Calendar className="h-5 w-5" />
-                  Upcoming Projects Pipeline
-                </CardTitle>
-                <p className="text-blue-700 text-sm">Future project allocations and opportunities</p>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {/* {upcomingProjects.map((project) => (
-                    <Card key={project.id} className="bg-white border-blue-200 hover:shadow-lg transition-all duration-200">
-                      <CardHeader className="pb-3">
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <h4 className="font-semibold text-gray-900 text-sm">{project.name}</h4>
-                            <p className="text-xs text-gray-500 mt-1">{project.client}</p>
-                          </div>
-                          <Badge className={getPriorityColor(project.priority)}>
-                            {project.priority}
-                          </Badge>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="space-y-3">
-                        <div className="grid grid-cols-2 gap-2 text-xs">
-                          <div>
-                            <p className="text-gray-500">Start Date</p>
-                            <p className="font-medium text-gray-900">{new Date(project.startDate).toLocaleDateString()}</p>
-                          </div>
-                          <div>
-                            <p className="text-gray-500">End Date</p>
-                            <p className="font-medium text-gray-900">{new Date(project.endDate).toLocaleDateString()}</p>
-                          </div>
-                        </div>
-                        
-                        <div>
-                          <p className="text-xs text-gray-500 mb-1">Role</p>
-                          <div className="flex items-center gap-1">
-                            <User className="h-3 w-3 text-gray-400" />
-                            <p className="text-xs font-medium text-gray-900">{project.role}</p>
-                          </div>
-                        </div>
-                        
-                        <div>
-                          <p className="text-xs text-gray-500 mb-2">Required Skills</p>
-                          <div className="flex flex-wrap gap-1">
-                            {project.skillsRequired.map((skill, index) => (
-                              <Badge key={index} variant="outline" className="text-xs">
-                                {skill}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-center gap-1 pt-2 border-t border-gray-100">
-                          <Clock className="h-3 w-3 text-gray-400" />
-                          <p className="text-xs text-gray-500">
-                            Duration: {Math.ceil((new Date(project.endDate).getTime() - new Date(project.startDate).getTime()) / (1000 * 60 * 60 * 24 * 30))} months
-                          </p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))} */}
+      {!loading && !error && selectedResource && (
+        <div>
+          {/* Header Section - Enhanced Card UX */}
+          <Card className="mb-6 bg-gradient-to-br from-gray-50 via-blue-50 to-white border border-blue-100 shadow-md">
+            <CardContent className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 py-8 px-10">
+              <div className="flex items-center gap-6">
+                {/* Avatar */}
+                <div className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center text-4xl font-bold shadow">
+                  <User className="w-16 h-16 text-gray-400" />
                 </div>
+                <div>
+                  <div className="text-3xl font-bold text-gray-900 mb-1">{selectedResource.fullName}</div>
+                  <div className="text-gray-600 text-lg font-medium mb-2">{selectedResource.designation}</div>
+                  <div className="flex flex-wrap gap-3 text-sm text-gray-700 items-center">
+                    <span className="flex items-center gap-1"><Layers className="w-4 h-4" />{selectedResource.department}</span>
+                    <span className="flex items-center gap-1"><MapPin className="w-4 h-4" />{selectedResource.location}</span>
+                    <Badge className={`ml-2 px-2 py-1 text-xs font-semibold ${selectedResource.billableStatus ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-600'}`}>{selectedResource.billableStatus ? 'Active' : 'Inactive'}</Badge>
+                  </div>
+                </div>
+              </div>
+              <div className="flex gap-2 justify-end">
+                <button className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded font-semibold text-sm shadow" onClick={handleEdit}>Edit</button>
+                <button className="bg-red-600 hover:bg-red-700 text-white px-5 py-2 rounded font-semibold text-sm shadow" onClick={handleDelete} disabled={deleting}>{deleting ? "Deleting..." : "Delete"}</button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Summary Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <Card className="bg-blue-50 border border-blue-100 shadow-none">
+              <CardContent className="flex flex-col items-start py-4 px-6">
+                <div className="flex items-center gap-3 mb-1">
+                  <div className="bg-blue-100 rounded-full p-2 flex items-center justify-center">
+                    <Award className="w-6 h-6 text-blue-500" />
+                  </div>
+                  <span className="text-2xl font-bold text-blue-700">{selectedResource.experience} Years</span>
+                </div>
+                <div className="text-xs text-gray-600 font-medium mt-1">Experience</div>
               </CardContent>
             </Card>
-          )}
+            <Card className="bg-yellow-50">
+              <CardContent className="flex flex-col items-center py-4">
+                <Calendar className="w-6 h-6 text-yellow-600 mb-1" />
+                <div className="text-lg font-bold">{selectedResource.yearsAtCompany ?? "-"}</div>
+                <div className="text-xs text-gray-500">Years at Company</div>
+              </CardContent>
+            </Card>
+            <Card className="bg-purple-50">
+              <CardContent className="flex flex-col items-center py-4">
+                <Briefcase className="w-6 h-6 text-purple-600 mb-1" />
+                <div className="text-lg font-bold">{selectedResource.currentProjects?.length ?? 0}</div>
+                <div className="text-xs text-gray-500">Current Projects</div>
+              </CardContent>
+            </Card>
+            <Card className="bg-orange-50">
+              <CardContent className="flex flex-col items-center py-4">
+                <Badge className="bg-orange-500 text-white px-2 py-1 rounded">
+                  {selectedResource.billableStatus ? "Billable" : "Non-Billable"}
+                </Badge>
+                <div className="text-xs text-gray-500 mt-1">Billable Status</div>
+              </CardContent>
+            </Card>
+          </div>
 
-          {/* Edit Resource Modal */}
-          {isEditing && selectedResource && (
-            <EditResourceModal
-              resource={selectedResource}
-              onSave={handleSave}
-              onCancel={handleCancel}
-            />
-          )}
-        </>
+          {/* Main Content: 2 columns */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Left Column */}
+            <div className="space-y-6 lg:col-span-1">
+              {/* Contact Information */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Contact Information</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <div className="flex items-center gap-2 text-gray-700"><Mail className="w-4 h-4" /> {selectedResource.email ?? "-"}</div>
+                  <div className="flex items-center gap-2 text-gray-700"><Phone className="w-4 h-4" /> {selectedResource.phone ?? "-"}</div>
+                  <div className="flex items-center gap-2 text-gray-700"><MapPin className="w-4 h-4" /> {selectedResource.location ?? "-"}</div>
+                </CardContent>
+              </Card>
+              {/* HR Details */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>HR Details</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-1 text-sm">
+                  <div><strong>Employee ID:</strong> {selectedResource.employeeId ?? selectedResource.resourceId}</div>
+                  <div><strong>Joining Date:</strong> {selectedResource.joiningDate}</div>
+                  <div><strong>Employment Type:</strong> {selectedResource.employmentType}</div>
+                  <div><strong>Seniority Level:</strong> {selectedResource.seniorityLevel}</div>
+                  <div><strong>Reporting Manager:</strong> {selectedResource.reportingManager}</div>
+                  <div><strong>Cost Center:</strong> {selectedResource.costCenter}</div>
+                </CardContent>
+              </Card>
+              {/* Skills & Expertise */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Skills & Expertise</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-1 text-sm">
+                  <div><strong>Primary Skills:</strong> {selectedResource.primarySkills?.join(", ") ?? "-"}</div>
+                  <div><strong>Other Skills:</strong> {selectedResource.skills?.join(", ") ?? "-"}</div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Right/Main Column */}
+            <div className="space-y-6 lg:col-span-2">
+              {/* Current Projects */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Current Projects</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {selectedResource.currentProjects && selectedResource.currentProjects.length > 0 ? (
+                    selectedResource.currentProjects.map((proj, idx) => (
+                      <div key={idx} className="border-b pb-3 mb-3 last:border-b-0 last:pb-0 last:mb-0">
+                        <div className="flex justify-between items-center">
+                          <div>
+                        <div className="font-semibold text-gray-800">{proj.name}</div>
+                        {/* No role field in currentProjects, so omit for exact match */}
+                          </div>
+                          <Badge className="bg-blue-100 text-blue-700 font-semibold">
+                            {proj.healthStatus ?? "In Progress"}
+                          </Badge>
+                        </div>
+                        <div className="flex gap-4 text-xs text-gray-500 mt-1">
+                          <span>Start: {proj.start_date ?? "-"}</span>
+                          <span>End: {proj.end_date ?? "-"}</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded h-2 mt-2">
+                          <div className="bg-blue-600 h-2 rounded" style={{ width: `${proj.progress ?? 0}%` }} />
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1">Billable Hours: {proj.teamSize ?? "-"}</div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-gray-500">No current projects</div>
+                  )}
+                </CardContent>
+              </Card>
+              {/* Past Project Engagements */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Past Project Engagements</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {selectedResource.pastProjectEngagements && selectedResource.pastProjectEngagements.length > 0 ? (
+                    selectedResource.pastProjectEngagements.map((eng, idx) => (
+                      <div key={idx} className="border-b pb-3 mb-3 last:border-b-0 last:pb-0 last:mb-0">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <div className="font-semibold text-gray-800">{eng.projectName}</div>
+                            <div className="text-xs text-gray-500">{eng.role}</div>
+                          </div>
+                          <Badge className="bg-green-100 text-green-700 font-semibold">
+                            {eng.status ?? "Completed Successfully"}
+                          </Badge>
+                        </div>
+                        <div className="flex gap-4 text-xs text-gray-500 mt-1">
+                          <span>Period: {eng.period ?? "-"}</span>
+                          <span>Total Hours: {eng.totalHours ?? "-"}h</span>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-gray-500">No past project engagements</div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
 };
-
 export default ResourceDetails;

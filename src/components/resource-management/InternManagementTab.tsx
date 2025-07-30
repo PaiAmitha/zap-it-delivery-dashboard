@@ -1,35 +1,32 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { getInternResources } from "@/lib/api";
 
 export const InternManagementTab = () => {
-  const navigate = useNavigate();
+  const [interns, setInterns] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const interns = [
-    {
-      id: "INT001",
-      name: "Priya Sharma",
-      duration: "3 months",
-      department: "QA",
-      mentor: "Sarah Wilson",
-      conversionStatus: "High",
-      status: "Active",
-      feedback: "Excellent performance"
-    },
-    {
-      id: "INT002",
-      name: "Arjun Patel",
-      duration: "6 months",
-      department: "Engineering",
-      mentor: "John Doe",
-      conversionStatus: "Medium",
-      status: "Active",
-      feedback: "Good progress"
-    }
-  ];
+  useEffect(() => {
+    const fetchInterns = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const token = localStorage.getItem('token') || '';
+        const result = await getInternResources(token);
+        setInterns((result as any).interns || []);
+      } catch (err: any) {
+        setError(err?.message || 'Failed to fetch interns');
+        setInterns([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchInterns();
+  }, []);
 
   const getConversionColor = (status: string) => {
     switch (status) {
@@ -40,8 +37,8 @@ export const InternManagementTab = () => {
     }
   };
 
-  const handleViewDetails = (internId: string) => {
-    navigate(`/resource-details/interns?id=${internId}`);
+  const handleViewDetails = (employeeId: string) => {
+    window.location.href = `/resource-details/${employeeId}`;
   };
 
   return (
@@ -51,48 +48,54 @@ export const InternManagementTab = () => {
           <CardTitle>Intern Management</CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Intern ID</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Duration</TableHead>
-                <TableHead>Department</TableHead>
-                <TableHead>Mentor</TableHead>
-                <TableHead>Conversion Status</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Feedback</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {interns.map((intern) => (
-                <TableRow key={intern.id}>
-                  <TableCell>{intern.id}</TableCell>
-                  <TableCell className="font-medium">{intern.name}</TableCell>
-                  <TableCell>{intern.duration}</TableCell>
-                  <TableCell>{intern.department}</TableCell>
-                  <TableCell>{intern.mentor}</TableCell>
-                  <TableCell>
-                    <Badge className={getConversionColor(intern.conversionStatus)}>
-                      {intern.conversionStatus}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{intern.status}</TableCell>
-                  <TableCell>{intern.feedback}</TableCell>
-                  <TableCell>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => handleViewDetails(intern.id)}
-                    >
-                      View Details
-                    </Button>
-                  </TableCell>
+          {loading ? (
+            <div className="text-gray-500">Loading interns...</div>
+          ) : error ? (
+            <div className="text-red-500">{error}</div>
+          ) : interns.length === 0 ? (
+            <div className="text-gray-500">No interns found.</div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Employee ID</TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Department</TableHead>
+                  <TableHead>Mentor</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Stipend</TableHead>
+                  <TableHead>Start Date</TableHead>
+                  <TableHead>End Date</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {interns.map((intern) => (
+                  <TableRow key={intern.employeeId}>
+                    <TableCell>{intern.employeeId}</TableCell>
+                    <TableCell className="font-medium">{intern.fullName}</TableCell>
+                    <TableCell>{intern.department}</TableCell>
+                    <TableCell>{intern.mentorName}</TableCell>
+                    <TableCell>
+                      <Badge className={getConversionColor(intern.status)}>{intern.status}</Badge>
+                    </TableCell>
+                    <TableCell>{intern.stipend}</TableCell>
+                    <TableCell>{intern.internshipStartDate}</TableCell>
+                    <TableCell>{intern.internshipEndDate}</TableCell>
+                    <TableCell>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleViewDetails(intern.employeeId)}
+                      >
+                        View Details
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
     </div>

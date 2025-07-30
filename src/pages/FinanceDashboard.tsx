@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getFinance } from "@/lib/api";
+import { getFinancialDashboard } from "@/lib/api";
 import { BreadcrumbNavigation } from "@/components/layout/BreadcrumbNavigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -20,7 +20,7 @@ import { BenchCostingCard } from "@/components/finance/BenchCostingCard";
 import { FinancialKPISection } from "@/components/finance/FinancialKPISection";
 import { ProjectTypeAnalysis } from "@/components/finance/ProjectTypeAnalysis";
 import { EnhancedKPICard } from "@/components/dashboard/EnhancedKPICard";
-import { Employee } from "@/types/employee";
+import { ResourceData } from "@/types/resource";
 
 
 interface ProjectFinancials {
@@ -56,19 +56,25 @@ const FinanceDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [projectFinancials, setProjectFinancials] = useState<ProjectFinancials[]>([]);
-  const [benchEmployees, setBenchEmployees] = useState<Employee[]>([]);
+  const [benchResources, setBenchResources] = useState<ResourceData[]>([]);
   const [totalBenchCost, setTotalBenchCost] = useState<number>(0);
+
+  type FinancialDashboardResponse = {
+    projectFinancials?: ProjectFinancials[];
+    benchResources?: ResourceData[];
+    benchEmployees?: ResourceData[];
+    totalBenchCost?: number;
+  };
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       setError(null);
       try {
-        // TODO: Replace with real auth token logic
         const token = localStorage.getItem('token') || '';
-        const data = await getFinance(token);
+        const data: FinancialDashboardResponse = await getFinancialDashboard(token);
         setProjectFinancials(data.projectFinancials || []);
-        setBenchEmployees(data.benchEmployees || []);
+        setBenchResources(data.benchResources || data.benchEmployees || []);
         setTotalBenchCost(data.totalBenchCost || 0);
       } catch (err: any) {
         setError(err?.message || 'Failed to load financial data');
@@ -204,7 +210,7 @@ const FinanceDashboard = () => {
             </TabsContent>
 
             <TabsContent value="bench" className="space-y-4 sm:space-y-6 mt-6 animate-fade-in-up w-full">
-              <BenchCostingCard employees={benchEmployees} totalBenchCost={totalBenchCost} />
+              <BenchCostingCard employees={benchResources} totalBenchCost={totalBenchCost} />
             </TabsContent>
 
             <TabsContent value="analysis" className="space-y-4 sm:space-y-6 mt-6 animate-fade-in-up w-full">

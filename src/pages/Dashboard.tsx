@@ -17,6 +17,8 @@ import { getDashboard, DashboardData } from "@/lib/api";
 const Dashboard = () => {
   const [data, setData] = useState<DashboardData | null>(null);
   const [activeProjects, setActiveProjects] = useState<any[]>([]);
+  const [projectCards, setProjectCards] = useState<any[]>([]);
+  const [dashboardKPIs, setDashboardKPIs] = useState<any>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
@@ -31,11 +33,12 @@ const Dashboard = () => {
       setLoading(true);
       setError(null);
       try {
-        // TODO: Replace with real auth token logic
         const token = localStorage.getItem('token') || '';
         const dashboard = await getDashboard(token);
         setData(dashboard);
+        setProjectCards(dashboard.projectCards || []);
         setActiveProjects(dashboard.active_projects || []);
+        setDashboardKPIs(dashboard.dashboard_kpis || {});
       } catch (err: any) {
         setError(err?.message || 'Failed to load dashboard');
       } finally {
@@ -91,76 +94,114 @@ const Dashboard = () => {
         </div>
 
         {/* Active Projects Overview Section */}
-        <div className="w-full max-w-none px-1 sm:px-0">
-          <Card className="border-0 shadow-sm bg-white w-full max-w-none">
-            <CardContent className="px-3 sm:px-6 w-full max-w-none">
-              {activeProjects.length === 0 ? (
+        <div className="w-full max-w-none px-2 sm:px-0">
+          <Card className="bg-white rounded-2xl shadow-md border border-gray-100 w-full max-w-none">
+            <CardHeader className="bg-white rounded-t-2xl px-6 pt-6 pb-2 border-b border-gray-100">
+              <CardTitle className="text-xl font-semibold text-gray-900">Active Projects Overview</CardTitle>
+            </CardHeader>
+            <CardContent className="px-0 sm:px-0 w-full max-w-none">
+              {projectCards.length === 0 ? (
                 <div className="col-span-full text-center py-8 text-gray-500 text-base">
                   No active projects found.
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 w-full">
-                  {activeProjects.map((project) => (
-                    <div key={project.id}>
-                      <Card className="border border-gray-200 hover:shadow-md transition-shadow w-full">
-                        <CardHeader className="pb-2 sm:pb-3 px-3 sm:px-4">
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1 min-w-0">
-                              <CardTitle className="text-base sm:text-lg font-semibold text-gray-900 mb-1 truncate">
-                                {project.name}
-                              </CardTitle>
-                              <p className="text-xs sm:text-sm text-gray-600 mb-2 line-clamp-2">{project.description}</p>
-                              <p className="text-xs sm:text-sm font-medium text-blue-600 truncate">{project.customer}</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6 w-full p-6">
+                  {projectCards.map((project) => {
+                    if (!['On Track', 'At Risk', 'Critical', 'Delayed', 'active', 'Active'].includes(project.status)) { return null; }
+                    // Ensure kpis is always an array
+                    const kpis = Array.isArray(project.kpis) ? project.kpis : [];
+                    const velocityKPI = kpis.find((k: any) =>
+                      (k.name?.toLowerCase().includes('velocity') || k.title?.toLowerCase().includes('velocity'))
+                    );
+                    const qualityKPI = kpis.find((k: any) =>
+                      (k.name?.toLowerCase().includes('quality') || k.title?.toLowerCase().includes('quality'))
+                    );
+                    const firstKPI = kpis[0];
+
+                    return (
+                      <div key={project.id}>
+                        <Card className="border border-gray-200 rounded-xl shadow bg-white w-full h-full flex flex-col justify-between transition-shadow hover:shadow-lg">
+                          <CardHeader className="pb-2 sm:pb-3 px-5 pt-5">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1 min-w-0">
+                                <CardTitle className="text-lg font-semibold text-gray-900 mb-1 truncate">
+                                  {project.name}
+                                </CardTitle>
+                                <p className="text-sm text-gray-600 mb-2 line-clamp-2">{project.description}</p>
+                                <p className="text-sm font-medium text-blue-600 truncate">{project.customer}</p>
+                              </div>
                             </div>
-                          </div>
-                        </CardHeader>
-                        <CardContent className="pt-0 px-3 sm:px-4">
-                          <div className="space-y-3 sm:space-y-4">
-                            {/* Health Status and On-Time Percentage */}
-                            <div className="flex items-center justify-between">
+                          </CardHeader>
+                          <CardContent className="pt-0 px-5 pb-5">
+                            <div className="space-y-4">
+                              {/* Health Status and On-Time Percentage */}
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <p className="text-xs text-gray-500 mb-1">Health Status</p>
+                                  <Badge className={`${getHealthStatusColor(project.healthStatus)} text-xs px-3 py-1 rounded-full font-medium`}>
+                                    {project.healthStatus}
+                                  </Badge>
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-xs text-gray-500 mb-1">On-Time</p>
+                                  <p className="text-lg font-bold text-gray-900">
+                                    {project.onTimePercentage ?? '-'}%
+                                  </p>
+                                </div>
+                              </div>
+                              {/* KPI Values Section */}
+                              {project.kpis && project.kpis.length > 0 && (
+                                <div className="flex flex-wrap gap-4 mt-2">
+                                  {velocityKPI && (
+                                    <div className="text-center">
+                                      <p className="text-xs text-gray-500">Velocity</p>
+                                      <p className="text-lg font-bold text-blue-700">{velocityKPI.value ?? '-'}</p>
+                                    </div>
+                                  )}
+                                  {qualityKPI && (
+                                    <div className="text-center">
+                                      <p className="text-xs text-gray-500">Quality</p>
+                                      <p className="text-lg font-bold text-green-700">{qualityKPI.value ?? '-'}</p>
+                                    </div>
+                                  )}
+                                  {!velocityKPI && !qualityKPI && firstKPI && (
+                                    <div className="text-center">
+                                      <p className="text-xs text-gray-500">{firstKPI.title || firstKPI.name}</p>
+                                      <p className="text-lg font-bold text-blue-700">{firstKPI.value ?? '-'}</p>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                              {/* Progress Bar */}
                               <div>
-                                <p className="text-xs text-gray-500 mb-1">Health Status</p>
-                                <Badge className={`${getHealthStatusColor(project.healthStatus)} text-xs`}>
-                                  {project.healthStatus}
-                                </Badge>
+                                <div className="flex items-center justify-between mb-2">
+                                  <p className="text-xs text-gray-500">Progress</p>
+                                  <p className="text-xs font-medium text-gray-700">{project.progress}%</p>
+                                </div>
+                                <Progress value={project.progress} className="h-2 rounded-full bg-gray-200" />
                               </div>
-                              <div className="text-right">
-                                <p className="text-xs text-gray-500 mb-1">On-Time</p>
-                                <p className="text-base sm:text-lg font-bold text-gray-900">
-                                  {project.onTimePercentage}%
-                                </p>
+                              {/* Team Size and Actions */}
+                              <div className="flex items-center justify-between pt-2">
+                                <div className="flex items-center gap-2 text-gray-600">
+                                  <Users className="h-4 w-4" />
+                                  <span className="text-sm">{project.teamSize} members</span>
+                                </div>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  className="flex items-center gap-2 text-sm px-3 py-2 border-gray-300"
+                                  onClick={() => handleViewProjectDetails(project.id)}
+                                >
+                                  <ExternalLink className="h-4 w-4" />
+                                  <span>View Details</span>
+                                </Button>
                               </div>
                             </div>
-                            {/* Progress Bar */}
-                            <div>
-                              <div className="flex items-center justify-between mb-2">
-                                <p className="text-xs text-gray-500">Progress</p>
-                                <p className="text-xs font-medium text-gray-700">{project.progress}%</p>
-                              </div>
-                              <Progress value={project.progress} className="h-2" />
-                            </div>
-                            {/* Team Size and Actions */}
-                            <div className="flex items-center justify-between pt-2">
-                              <div className="flex items-center gap-1 text-gray-600">
-                                <Users className="h-3 w-3 sm:h-4 sm:w-4" />
-                                <span className="text-xs sm:text-sm">{project.teamSize} members</span>
-                              </div>
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
-                                className="flex items-center gap-1 text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2"
-                                onClick={() => handleViewProjectDetails(project.id)}
-                              >
-                                <ExternalLink className="h-3 w-3" />
-                                <span className="hidden sm:inline">View Details</span>
-                                <span className="sm:hidden">View</span>
-                              </Button>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </div>
-                  ))}
+                          </CardContent>
+                        </Card>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </CardContent>

@@ -1,4 +1,5 @@
 
+import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -7,6 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TeamMembersSection } from "@/components/dashboard/modal/TeamMembersSection";
 import { MilestonesSection } from "@/components/dashboard/modal/MilestonesSection";
 import { RisksSection } from "@/components/dashboard/modal/RisksSection";
+import { MultiSelect } from "@/components/ui/multi-select";
+import employeeData from "@/data/employeeData.json";
 
 interface TeamMember {
   id: string;
@@ -17,6 +20,7 @@ interface TeamMember {
   location: string;
   utilization: string;
   status: string;
+  skills?: string[];
 }
 
 interface Milestone {
@@ -54,6 +58,75 @@ export const ProjectOverviewForm = ({
   risks,
   setRisks
 }: ProjectOverviewFormProps) => {
+  // Extract unique skills from employeeData
+  const allSkills = Array.from(new Set(employeeData.employees.flatMap((e: any) => e.skills)));
+  const skillOptions = allSkills.map((s) => ({ label: s, value: s }));
+
+  // Validation state
+  const [errors, setErrors] = useState<any>({});
+
+  // For skills dropdown
+  const [selectedSkills, setSelectedSkills] = useState<string[]>(formData.requiredSkills ? formData.requiredSkills.split(",").map((s: string) => s.trim()) : []);
+
+  // Dynamic duration calculation
+  useEffect(() => {
+    if (formData.startDate && formData.endDate) {
+      const start = new Date(formData.startDate);
+      const end = new Date(formData.endDate);
+      if (!isNaN(start.getTime()) && !isNaN(end.getTime()) && end > start) {
+        const diffMs = end.getTime() - start.getTime();
+        const diffDays = diffMs / (1000 * 60 * 60 * 24);
+        const diffWeeks = Math.round(diffDays / 7);
+        setFormData({ ...formData, duration: `${diffWeeks} weeks` });
+      }
+    }
+  }, [formData.startDate, formData.endDate]);
+
+  // Budget formatting
+  const handleBudgetChange = (e: any) => {
+    let val = e.target.value.replace(/[^\d.]/g, "");
+    setFormData({ ...formData, projectBudget: val ? `$${val}` : "" });
+  };
+
+  // Skills dropdown sync
+  useEffect(() => {
+    setFormData({ ...formData, requiredSkills: selectedSkills.join(", ") });
+  }, [selectedSkills]);
+
+  // Validation on blur/submit (example for required fields)
+  const validate = () => {
+    const newErrors: any = {};
+    if (!formData.projectName) {
+      newErrors.projectName = "Project name is required";
+    }
+    if (!formData.clientName) {
+      newErrors.clientName = "Client name is required";
+    }
+    if (!formData.startDate) {
+      newErrors.startDate = "Start date is required";
+    }
+    if (!formData.endDate) {
+      newErrors.endDate = "End date is required";
+    }
+    if (formData.endDate && formData.startDate && new Date(formData.endDate) < new Date(formData.startDate)) {
+      newErrors.endDate = "End date must be after start date";
+    }
+    if (!formData.projectBudget || isNaN(Number(formData.projectBudget.replace(/[^\d.]/g, "")))) {
+      newErrors.projectBudget = "Budget must be a valid number";
+    }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  // Filter key team members by selected skills
+  const filteredTeamMembers = selectedSkills.length === 0
+    ? teamMembers
+    : teamMembers.filter((member) =>
+        selectedSkills.some((skill) =>
+          (member.skills || []).includes(skill)
+        )
+      );
+
   return (
     <div className="space-y-6">
       {/* Basic Project Information */}
@@ -158,7 +231,7 @@ export const ProjectOverviewForm = ({
                 id="duration"
                 placeholder="e.g., 24 weeks"
                 value={formData.duration}
-                onChange={(e) => setFormData({...formData, duration: e.target.value})}
+                readOnly
               />
             </div>
             <div>
@@ -212,23 +285,26 @@ export const ProjectOverviewForm = ({
               <Label htmlFor="projectBudget">Project Budget</Label>
               <Input
                 id="projectBudget"
-                type="number"
-                placeholder="Enter budget amount"
+                type="text"
+                placeholder="Enter budget amount (USD)"
                 value={formData.projectBudget}
-                onChange={(e) => setFormData({...formData, projectBudget: e.target.value})}
+                onChange={handleBudgetChange}
+                onBlur={validate}
+                className={errors.projectBudget ? "border-red-500" : ""}
               />
+              {errors.projectBudget && <span className="text-red-500 text-xs">{errors.projectBudget}</span>}
             </div>
           </div>
           
           <div className="mt-4 space-y-4">
             <div>
               <Label htmlFor="requiredSkills">Required Skills</Label>
-              <Textarea
-                id="requiredSkills"
-                placeholder="Enter required skills separated by commas (e.g., React, Node.js, Python)"
-                value={formData.requiredSkills}
-                onChange={(e) => setFormData({...formData, requiredSkills: e.target.value})}
-                className="min-h-[80px]"
+              <MultiSelect
+                options={skillOptions}
+                selected={selectedSkills}
+                onChange={setSelectedSkills}
+                placeholder="Select required skills"
+                className="min-h-[40px]"
               />
             </div>
             
@@ -248,7 +324,7 @@ export const ProjectOverviewForm = ({
       </Card>
 
       <TeamMembersSection
-        teamMembers={teamMembers}
+        teamMembers={filteredTeamMembers}
         setTeamMembers={setTeamMembers}
         showOnlyKeyMembers={true}
       />

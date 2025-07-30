@@ -9,11 +9,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Edit2, Eye, Search, Filter, Plus } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 import { BreadcrumbNavigation } from "@/components/layout/BreadcrumbNavigation";
-import { getEmployees } from "@/lib/api";
-import { Employee } from "@/types/employee";
+import { getResources, createResource } from "@/lib/api";
+// import { AddResourceModal } from "@/components/resources/AddResourceModal";
 
 interface Resource {
-  employeeId: string;
+  resourceId: string;
+  employeeId?: string;
   fullName: string;
   designation: string;
   department: string;
@@ -23,17 +24,15 @@ interface Resource {
   joiningDate: string;
   employmentType: string;
   reportingManager: string;
-  primarySkill: string;
-  skillCategory: string;
+  skillCategory?: string;
+  skills?: string[];
   billableStatus: boolean;
-  currentEngagement: string;
-  projectName?: string;
-  engagementDescription: string;
-  agingInNonBillable: number;
-  monthlySalaryCost: number;
+  currentEngagement?: string;
+  agingInNonBillable?: number;
+  monthlySalaryCost?: number;
   billingRate?: number;
-  monthlyRevenueGenerated: number;
-  isIntern: boolean;
+  monthlyRevenueGenerated?: number;
+  isIntern?: boolean;
 }
 
 const Resources = () => {
@@ -44,51 +43,60 @@ const Resources = () => {
   const [resources, setResources] = useState<Resource[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
+  const fetchResources = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const token = localStorage.getItem('token') || '';
+      const data = await getResources(token) as { resources?: Resource[] } | Resource[];
+      const resourcesList = Array.isArray(data) ? data : (data.resources || []);
+      setResources(resourcesList);
+    } catch (err: any) {
+      setError(err?.message || 'Failed to fetch resources');
+    } finally {
+      setLoading(false);
+    }
+  };
   useEffect(() => {
-    const fetchResources = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const token = localStorage.getItem('token') || '';
-        const data = await getEmployees(token) as { employees?: Employee[] } | Employee[];
-        const employeesList = Array.isArray(data) ? data : (data.employees || []);
-        const mapped = employeesList.map(emp => ({
-          employeeId: emp.employee_id,
-          fullName: emp.full_name,
-          designation: emp.designation,
-          department: emp.department,
-          seniorityLevel: emp.experience_level,
-          experience: emp.years_of_experience,
-          location: emp.location,
-          joiningDate: emp.joining_date,
-          employmentType: emp.resource_type,
-          reportingManager: (emp as any).reporting_manager || '',
-          primarySkill: emp.primary_skills[0] || '',
-          skillCategory: 'Application Development', // Placeholder
-          billableStatus: emp.status === 'Billable',
-          currentEngagement: emp.status === 'Billable' ? 'Client Project' : 'Available',
-          projectName: emp.status === 'Billable' ? 'Current Project' : undefined,
-          engagementDescription: emp.status === 'Billable' ? 'Working on client project' : 'Available for assignment',
-          agingInNonBillable: emp.bench_days || 0,
-          monthlySalaryCost: emp.cost_rate,
-          billingRate: emp.billing_rate || undefined,
-          monthlyRevenueGenerated: emp.billing_rate || 0,
-          isIntern: false, // Set true if intern logic is available
-        }));
-        setResources(mapped);
-      } catch (err: any) {
-        setError(err?.message || 'Failed to fetch resources');
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchResources();
   }, []);
 
+  const handleAddResource = async (newResource: any) => {
+    try {
+      const token = localStorage.getItem('token') || '';
+      // Map ResourceData to Resource, add skillCategory if missing
+      const resourceToCreate = {
+        ...newResource,
+        skillCategory: newResource.skillCategory || "General"
+      };
+      await createResource(token, resourceToCreate);
+      setShowAddModal(false);
+      fetchResources();
+    } catch (err: any) {
+      setError(err?.message || 'Failed to add resource');
+    }
+  };
+
+  const handleDelete = async (resourceId: string) => {
+    if (!window.confirm('Are you sure you want to delete this resource?')) return;
+    setDeletingId(resourceId);
+    try {
+      const token = localStorage.getItem('token') || '';
+      await import("@/lib/api").then(api => api.deleteResource(token, resourceId));
+      fetchResources();
+    } catch (err: any) {
+      setError(err?.message || 'Failed to delete resource');
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   const filteredResources = resources.filter(resource => {
     const matchesSearch = resource.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         resource.employeeId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         resource.resourceId.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          resource.designation.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesDepartment = departmentFilter === "all" || resource.department === departmentFilter;
@@ -101,12 +109,12 @@ const Resources = () => {
     return matchesSearch && matchesDepartment && matchesStatus;
   });
 
-  const handleEdit = (employeeId: string) => {
-    navigate(`/resource-details/edit/${employeeId}`);
+  const handleEdit = (resourceId: string) => {
+    navigate(`/resource-details/edit/${resourceId}`);
   };
 
-  const handleView = (employeeId: string) => {
-    navigate(`/resource-view/${employeeId}`);
+  const handleView = (resourceId: string) => {
+    navigate(`/resource-details/${resourceId}`);
   };
 
   const formatCurrency = (amount: number) => `$${amount.toLocaleString()}`;
@@ -134,17 +142,18 @@ const Resources = () => {
           <>
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
-                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Employee Records ({filteredResources.length})</h1>
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Resource Records ({filteredResources.length})</h1>
                 <p className="text-sm sm:text-base text-gray-600 mt-1">Manage and view all employee resources</p>
               </div>
               <div className="flex gap-3 w-full sm:w-auto">
-                <Link to="/add-resource" className="flex-1 sm:flex-none">
+                <Link to="/add-resource">
                   <Button className="w-full sm:w-auto">
                     <Plus className="h-4 w-4 mr-2" />
                     Add Resource
                   </Button>
                 </Link>
               </div>
+      {/* AddResourceModal removed. Use AddResource page for resource creation. */}
             </div>
 
             {/* Filters */}
@@ -222,40 +231,41 @@ const Resources = () => {
                         <TableHeader>
                           <TableRow>
                             <TableHead className="min-w-[100px]">Employee ID</TableHead>
-                            <TableHead className="min-w-[150px]">Full Name</TableHead>
+                            <TableHead className="min-w-[150px]">Name</TableHead>
                             <TableHead className="min-w-[180px]">Designation</TableHead>
                             <TableHead className="min-w-[130px]">Department</TableHead>
-                            <TableHead className="min-w-[150px]">Seniority Level</TableHead>
-                            <TableHead className="min-w-[100px]">Experience (Years)</TableHead>
-                            <TableHead className="min-w-[100px]">Location</TableHead>
-                            <TableHead className="min-w-[120px]">Joining Date</TableHead>
-                            <TableHead className="min-w-[130px]">Employment Type</TableHead>
-                            <TableHead className="min-w-[150px]">Reporting Manager</TableHead>
+                            <TableHead className="min-w-[150px]">Skills</TableHead>
+                            <TableHead className="min-w-[120px]">Status</TableHead>
+                            <TableHead className="min-w-[100px]">Monthly Cost</TableHead>
+                            <TableHead className="min-w-[100px]">Age</TableHead>
                             <TableHead className="min-w-[100px]">Actions</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {filteredResources.map((resource) => (
-                            <TableRow key={resource.employeeId}>
-                              <TableCell className="font-medium">{resource.employeeId}</TableCell>
+                            <TableRow key={resource.resourceId}>
+                              <TableCell className="font-medium">{resource.employeeId || resource.resourceId}</TableCell>
                               <TableCell>{resource.fullName}</TableCell>
                               <TableCell>{resource.designation}</TableCell>
                               <TableCell>{resource.department}</TableCell>
-                              <TableCell>{resource.seniorityLevel}</TableCell>
-                              <TableCell>{resource.experience}</TableCell>
-                              <TableCell>{resource.location}</TableCell>
-                              <TableCell>{resource.joiningDate}</TableCell>
+                              <TableCell>{Array.isArray(resource.skills) ? resource.skills.join(", ") : resource.skills}</TableCell>
                               <TableCell>
-                                <Badge variant="outline">{resource.employmentType}</Badge>
+                                <Badge variant={resource.billableStatus ? "default" : "secondary"}>
+                                  {resource.billableStatus ? "Billable" : "Non-Billable"}
+                                </Badge>
                               </TableCell>
-                              <TableCell>{resource.reportingManager}</TableCell>
+                              <TableCell>{resource.monthlySalaryCost ? `$${resource.monthlySalaryCost}` : "$0"}</TableCell>
+                              <TableCell>{Number((resource as any).yearsAtCompany ?? resource.experience)}</TableCell>
                               <TableCell>
                                 <div className="flex gap-2">
-                                  <Button size="sm" variant="outline" onClick={() => handleView(resource.employeeId)}>
+                                  <Button size="sm" variant="outline" onClick={() => handleView(resource.resourceId)}>
                                     <Eye className="h-4 w-4" />
                                   </Button>
-                                  <Button size="sm" variant="outline" onClick={() => handleEdit(resource.employeeId)}>
+                                  <Button size="sm" variant="outline" onClick={() => handleEdit(resource.resourceId)}>
                                     <Edit2 className="h-4 w-4" />
+                                  </Button>
+                                  <Button size="sm" variant="destructive" disabled={deletingId === resource.resourceId} onClick={() => handleDelete(resource.resourceId)}>
+                                    {deletingId === resource.resourceId ? "Deleting..." : "Delete"}
                                   </Button>
                                 </div>
                               </TableCell>
@@ -278,24 +288,21 @@ const Resources = () => {
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead className="min-w-[100px]">Employee ID</TableHead>
+                            <TableHead className="min-w-[100px]">Resource ID</TableHead>
                             <TableHead className="min-w-[150px]">Name</TableHead>
-                            <TableHead className="min-w-[120px]">Primary Skill</TableHead>
                             <TableHead className="min-w-[130px]">Skill Category</TableHead>
                             <TableHead className="min-w-[120px]">Billable Status</TableHead>
                             <TableHead className="min-w-[150px]">Current Engagement</TableHead>
-                            <TableHead className="min-w-[150px]">Project Name</TableHead>
-                            <TableHead className="min-w-[200px]">Engagement Description</TableHead>
+                            {/* Project Name and Engagement Description columns removed */}
                             <TableHead className="min-w-[100px]">Aging (Days)</TableHead>
                             <TableHead className="min-w-[100px]">Actions</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {filteredResources.map((resource) => (
-                            <TableRow key={resource.employeeId}>
-                              <TableCell className="font-medium">{resource.employeeId}</TableCell>
+                            <TableRow key={resource.resourceId}>
+                              <TableCell className="font-medium">{resource.resourceId}</TableCell>
                               <TableCell>{resource.fullName}</TableCell>
-                              <TableCell>{resource.primarySkill}</TableCell>
                               <TableCell>{resource.skillCategory}</TableCell>
                               <TableCell>
                                 <Badge variant={resource.billableStatus ? "default" : "secondary"}>
@@ -303,8 +310,7 @@ const Resources = () => {
                                 </Badge>
                               </TableCell>
                               <TableCell>{resource.currentEngagement}</TableCell>
-                              <TableCell>{resource.projectName || "-"}</TableCell>
-                              <TableCell>{resource.engagementDescription}</TableCell>
+                              {/* Project Name and Engagement Description cells removed */}
                               <TableCell>
                                 <Badge 
                                   variant={resource.agingInNonBillable > 60 ? "destructive" : 
@@ -314,10 +320,10 @@ const Resources = () => {
                               </TableCell>
                               <TableCell>
                                 <div className="flex gap-2">
-                                  <Button size="sm" variant="outline" onClick={() => handleView(resource.employeeId)}>
+                                  <Button size="sm" variant="outline" onClick={() => handleView(resource.resourceId)}>
                                     <Eye className="h-4 w-4" />
                                   </Button>
-                                  <Button size="sm" variant="outline" onClick={() => handleEdit(resource.employeeId)}>
+                                  <Button size="sm" variant="outline" onClick={() => handleEdit(resource.resourceId)}>
                                     <Edit2 className="h-4 w-4" />
                                   </Button>
                                 </div>
@@ -341,7 +347,7 @@ const Resources = () => {
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead className="min-w-[100px]">Employee ID</TableHead>
+                            <TableHead className="min-w-[100px]">Resource ID</TableHead>
                             <TableHead className="min-w-[150px]">Name</TableHead>
                             <TableHead className="min-w-[100px]">Is Intern</TableHead>
                             <TableHead className="min-w-[150px]">Internship Start Date</TableHead>
@@ -354,8 +360,8 @@ const Resources = () => {
                         </TableHeader>
                         <TableBody>
                           {filteredResources.map((resource) => (
-                            <TableRow key={resource.employeeId}>
-                              <TableCell className="font-medium">{resource.employeeId}</TableCell>
+                            <TableRow key={resource.resourceId}>
+                              <TableCell className="font-medium">{resource.resourceId}</TableCell>
                               <TableCell>{resource.fullName}</TableCell>
                               <TableCell>
                                 <Badge variant={resource.isIntern ? "default" : "secondary"}>
@@ -369,10 +375,10 @@ const Resources = () => {
                               <TableCell>{resource.isIntern ? "$2,500" : "-"}</TableCell>
                               <TableCell>
                                 <div className="flex gap-2">
-                                  <Button size="sm" variant="outline" onClick={() => handleView(resource.employeeId)}>
+                                  <Button size="sm" variant="outline" onClick={() => handleView(resource.resourceId)}>
                                     <Eye className="h-4 w-4" />
                                   </Button>
-                                  <Button size="sm" variant="outline" onClick={() => handleEdit(resource.employeeId)}>
+                                  <Button size="sm" variant="outline" onClick={() => handleEdit(resource.resourceId)}>
                                     <Edit2 className="h-4 w-4" />
                                   </Button>
                                 </div>
@@ -396,7 +402,7 @@ const Resources = () => {
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead className="min-w-[100px]">Employee ID</TableHead>
+                            <TableHead className="min-w-[100px]">Resource ID</TableHead>
                             <TableHead className="min-w-[150px]">Name</TableHead>
                             <TableHead className="min-w-[150px]">Monthly Salary Cost</TableHead>
                             <TableHead className="min-w-[120px]">Billing Rate</TableHead>
@@ -409,8 +415,8 @@ const Resources = () => {
                         </TableHeader>
                         <TableBody>
                           {filteredResources.map((resource) => (
-                            <TableRow key={resource.employeeId}>
-                              <TableCell className="font-medium">{resource.employeeId}</TableCell>
+                            <TableRow key={resource.resourceId}>
+                              <TableCell className="font-medium">{resource.resourceId}</TableCell>
                               <TableCell>{resource.fullName}</TableCell>
                               <TableCell>{formatCurrency(resource.monthlySalaryCost)}</TableCell>
                               <TableCell>{resource.billingRate ? `$${resource.billingRate}/hr` : "-"}</TableCell>
@@ -420,10 +426,10 @@ const Resources = () => {
                               <TableCell>{formatCurrency(resource.monthlyRevenueGenerated * 6)}</TableCell>
                               <TableCell>
                                 <div className="flex gap-2">
-                                  <Button size="sm" variant="outline" onClick={() => handleView(resource.employeeId)}>
+                                  <Button size="sm" variant="outline" onClick={() => handleView(resource.resourceId)}>
                                     <Eye className="h-4 w-4" />
                                   </Button>
-                                  <Button size="sm" variant="outline" onClick={() => handleEdit(resource.employeeId)}>
+                                  <Button size="sm" variant="outline" onClick={() => handleEdit(resource.resourceId)}>
                                     <Edit2 className="h-4 w-4" />
                                   </Button>
                                 </div>

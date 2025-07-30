@@ -16,18 +16,22 @@ interface Escalation {
   owner: string;
   priority: string;
   status: string;
-  dateRaised: string;
-  resolutionETA: string;
+  date_raised: string;
+  resolution_eta: string;
+  risk_level?: string;
   description?: string;
 }
+
+import { updateEscalation } from "@/lib/escalationApi";
 
 interface EditEscalationDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   escalation: Escalation | null;
+  onUpdate?: (updatedEscalation: Escalation | null) => void;
 }
 
-export const EditEscalationDialog = ({ open, onOpenChange, escalation }: EditEscalationDialogProps) => {
+export const EditEscalationDialog = ({ open, onOpenChange, escalation, onUpdate }: EditEscalationDialogProps) => {
   const { toast } = useToast();
   const [formData, setFormData] = useState({
     title: "",
@@ -36,8 +40,8 @@ export const EditEscalationDialog = ({ open, onOpenChange, escalation }: EditEsc
     project: "",
     owner: "",
     status: "Open",
-    dateRaised: "",
-    resolutionETA: "",
+    date_raised: "",
+    resolution_eta: "",
     description: "",
     businessImpact: "",
     rootCause: "",
@@ -45,7 +49,7 @@ export const EditEscalationDialog = ({ open, onOpenChange, escalation }: EditEsc
     nextSteps: "",
     stakeholders: "",
     budget: "",
-    riskLevel: "Medium",
+    risk_level: "Medium",
     category: "Technical",
     region: "North America"
   });
@@ -59,8 +63,8 @@ export const EditEscalationDialog = ({ open, onOpenChange, escalation }: EditEsc
         project: escalation.project,
         owner: escalation.owner,
         status: escalation.status,
-        dateRaised: escalation.dateRaised,
-        resolutionETA: escalation.resolutionETA,
+        date_raised: escalation.date_raised,
+        resolution_eta: escalation.resolution_eta,
         description: escalation.description || "",
         businessImpact: "Moderate impact on project timeline",
         rootCause: "Third-party API limitations",
@@ -68,7 +72,7 @@ export const EditEscalationDialog = ({ open, onOpenChange, escalation }: EditEsc
         nextSteps: "Implement workaround solution",
         stakeholders: "Project Manager, Tech Lead, Client",
         budget: "$5,000",
-        riskLevel: "Medium",
+        risk_level: escalation.risk_level || "Medium",
         category: "Technical",
         region: "North America"
       });
@@ -82,12 +86,23 @@ export const EditEscalationDialog = ({ open, onOpenChange, escalation }: EditEsc
     }));
   };
 
-  const handleSubmit = () => {
-    toast({
-      title: "Escalation Updated",
-      description: "The escalation has been updated successfully.",
-    });
-    onOpenChange(false);
+  const handleSubmit = async () => {
+    if (!escalation) return;
+    try {
+      const updated = await updateEscalation(Number(escalation.id), formData);
+      toast({
+        title: "Escalation Updated",
+        description: "The escalation has been updated successfully.",
+      });
+      if (onUpdate) onUpdate(updated);
+      onOpenChange(false);
+    } catch (err: any) {
+      toast({
+        title: "Update Failed",
+        description: err?.message || "Could not update escalation.",
+        variant: "destructive"
+      });
+    }
   };
 
   return (
@@ -199,7 +214,7 @@ export const EditEscalationDialog = ({ open, onOpenChange, escalation }: EditEsc
 
             <div className="space-y-2">
               <Label htmlFor="riskLevel">Risk Level</Label>
-              <Select value={formData.riskLevel} onValueChange={(value) => handleInputChange("riskLevel", value)}>
+              <Select value={formData.risk_level} onValueChange={(value) => handleInputChange("risk_level", value)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -215,20 +230,20 @@ export const EditEscalationDialog = ({ open, onOpenChange, escalation }: EditEsc
             <div className="space-y-2">
               <Label htmlFor="dateRaised">Date Raised</Label>
               <Input
-                id="dateRaised"
+                id="date_raised"
                 type="date"
-                value={formData.dateRaised}
-                onChange={(e) => handleInputChange("dateRaised", e.target.value)}
+                value={formData.date_raised}
+                onChange={(e) => handleInputChange("date_raised", e.target.value)}
               />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="resolutionETA">Resolution ETA *</Label>
               <Input
-                id="resolutionETA"
+                id="resolution_eta"
                 type="date"
-                value={formData.resolutionETA}
-                onChange={(e) => handleInputChange("resolutionETA", e.target.value)}
+                value={formData.resolution_eta}
+                onChange={(e) => handleInputChange("resolution_eta", e.target.value)}
               />
             </div>
 

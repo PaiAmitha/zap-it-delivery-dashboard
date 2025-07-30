@@ -13,8 +13,9 @@ interface Escalation {
   owner: string;
   priority: string;
   status: string;
-  dateRaised: string;
-  resolutionETA: string;
+  date_raised: string;
+  resolution_eta: string;
+  risk_level?: string;
   description?: string;
 }
 
@@ -67,11 +68,11 @@ export const EscalationCard = ({ escalations, onCreateNew }: EscalationCardProps
               <div className="space-y-1 text-xs text-muted-foreground">
                 <div className="flex items-center justify-between">
                   <span>Customer: {escalation.customer}</span>
-                  <span>{escalation.dateRaised}</span>
+                  <span>{escalation.date_raised}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span>Project Owner: {escalation.owner}</span>
-                  <span>ETA: {escalation.resolutionETA}</span>
+                  <span>ETA: {escalation.resolution_eta}</span>
                 </div>
               </div>
             </div>

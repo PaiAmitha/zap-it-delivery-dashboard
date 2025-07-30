@@ -18,7 +18,7 @@ interface EditResourceModalProps {
 export const EditResourceModal = ({ resource, onSave, onCancel }: EditResourceModalProps) => {
   const [formData, setFormData] = useState({
     // HR Fields
-    employeeId: resource.employeeId,
+    resourceId: resource.resourceId,
     fullName: resource.fullName,
     designation: resource.designation,
     department: resource.department,
@@ -28,35 +28,31 @@ export const EditResourceModal = ({ resource, onSave, onCancel }: EditResourceMo
     employmentType: resource.employmentType,
     experience: resource.experience.toString(),
     seniorityLevel: resource.seniorityLevel,
-    
+
     // Resource Management Fields
-    primarySkill: resource.primarySkill,
-    skillCategory: resource.skillCategory,
+    skills: (resource.skills || []).join(", "),
     billableStatus: resource.billableStatus.toString(),
     currentEngagement: resource.currentEngagement,
-    projectName: resource.projectName || "",
-    engagementDescription: resource.engagementDescription,
     engagementStartDate: resource.engagementStartDate || "",
     engagementEndDate: resource.engagementEndDate || "",
-    agingInNonBillable: resource.agingInNonBillable.toString(),
-    currentBenchStatus: resource.currentBenchStatus.toString(),
+    agingInNonBillable: resource.agingInNonBillable?.toString() || "",
+    currentBenchStatus: resource.currentBenchStatus?.toString() || "",
     engagementDetail: resource.engagementDetail,
-    
+
     // Intern Fields
-    isIntern: resource.isIntern.toString(),
     internshipStartDate: resource.internshipStartDate || "",
     internshipEndDate: resource.internshipEndDate || "",
     assignedProject: resource.assignedProject || "",
     mentorName: resource.mentorName || "",
     stipend: resource.stipend?.toString() || "",
-    
+
     // Finance Fields
-    monthlySalaryCost: resource.monthlySalaryCost.toString(),
+    monthlySalaryCost: resource.monthlySalaryCost?.toString() || "",
     billingRate: resource.billingRate?.toString() || "",
-    monthlyRevenueGenerated: resource.monthlyRevenueGenerated.toString(),
+    monthlyRevenueGenerated: resource.monthlyRevenueGenerated?.toString() || "",
     costCenter: resource.costCenter,
-    totalYTDCost: resource.totalYTDCost.toString(),
-    totalYTDRevenue: resource.totalYTDRevenue.toString()
+    totalYTDCost: resource.totalYTDCost?.toString() || "",
+    totalYTDRevenue: resource.totalYTDRevenue?.toString() || ""
   });
 
   const handleInputChange = (field: string, value: string) => {
@@ -66,7 +62,7 @@ export const EditResourceModal = ({ resource, onSave, onCancel }: EditResourceMo
   const handleSave = () => {
     // Convert form data back to ResourceData format
     const updatedResource: ResourceData = {
-      employeeId: formData.employeeId,
+      resourceId: formData.resourceId,
       fullName: formData.fullName,
       designation: formData.designation,
       department: formData.department,
@@ -76,18 +72,14 @@ export const EditResourceModal = ({ resource, onSave, onCancel }: EditResourceMo
       employmentType: formData.employmentType,
       experience: parseInt(formData.experience) || 0,
       seniorityLevel: formData.seniorityLevel,
-      primarySkill: formData.primarySkill,
-      skillCategory: formData.skillCategory,
+      skills: formData.skills.split(',').map((s: string) => s.trim()).filter(Boolean),
       billableStatus: formData.billableStatus === "true",
       currentEngagement: formData.currentEngagement,
-      projectName: formData.projectName || undefined,
-      engagementDescription: formData.engagementDescription,
       engagementStartDate: formData.engagementStartDate || undefined,
       engagementEndDate: formData.engagementEndDate || undefined,
       agingInNonBillable: parseInt(formData.agingInNonBillable) || 0,
       currentBenchStatus: formData.currentBenchStatus === "true",
       engagementDetail: formData.engagementDetail,
-      isIntern: formData.isIntern === "true",
       internshipStartDate: formData.internshipStartDate || undefined,
       internshipEndDate: formData.internshipEndDate || undefined,
       assignedProject: formData.assignedProject || undefined,
@@ -136,19 +128,34 @@ export const EditResourceModal = ({ resource, onSave, onCancel }: EditResourceMo
 
               <div className="flex-1 overflow-y-auto px-6 pb-6">
                 <TabsContent value="hr" className="space-y-6 mt-6">
-                  <HRDataForm formData={formData} handleInputChange={handleInputChange} />
+                  <HRDataForm formData={formData} onChange={handleInputChange} />
                 </TabsContent>
 
                 <TabsContent value="resource" className="space-y-6 mt-6">
-                  <ResourceManagementForm formData={formData} handleInputChange={handleInputChange} />
+                  <ResourceManagementForm
+                    formData={{
+                      primarySkills: resource.skills || [],
+                      skillCategory: "",
+                      billableStatus: resource.billableStatus ? "true" : "false",
+                      currentEngagement: resource.currentEngagement || "",
+                      projectName: "",
+                      engagementDescription: resource.engagementDescription || "",
+                      engagementStartDate: resource.engagementStartDate || "",
+                      engagementEndDate: resource.engagementEndDate || "",
+                      agingInNonBillable: resource.agingInNonBillable?.toString() || "",
+                      currentBenchStatus: resource.currentBenchStatus ? "true" : "false",
+                      engagementDetail: resource.engagementDetail || ""
+                    }}
+                    onChange={handleInputChange}
+                  />
                 </TabsContent>
 
                 <TabsContent value="intern" className="space-y-6 mt-6">
-                  <InternDataForm formData={formData} handleInputChange={handleInputChange} />
+                  <InternDataForm formData={formData} onChange={handleInputChange} />
                 </TabsContent>
 
                 <TabsContent value="finance" className="space-y-6 mt-6">
-                  <FinanceDataForm formData={formData} handleInputChange={handleInputChange} />
+                  <FinanceDataForm formData={formData} onChange={handleInputChange} />
                 </TabsContent>
               </div>
             </Tabs>

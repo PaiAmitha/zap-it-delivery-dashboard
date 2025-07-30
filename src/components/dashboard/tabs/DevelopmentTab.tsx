@@ -1,34 +1,12 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from "recharts";
 import { Code, GitBranch, Bug, Zap } from "lucide-react";
 
-export const DevelopmentTab = () => {
-  const developmentMetrics = {
-    codeCoverage: 84,
-    codeQuality: 92,
-    buildSuccess: 98,
-    deploymentFreq: "Daily",
-    leadTime: "2.3 days",
-    technicalDebt: 15
-  };
-
-  const velocityData = [
-    { sprint: "Sprint 11", planned: 40, completed: 38, velocity: 95 },
-    { sprint: "Sprint 12", planned: 42, completed: 42, velocity: 100 },
-    { sprint: "Sprint 13", planned: 45, completed: 43, velocity: 96 },
-    { sprint: "Sprint 14", planned: 40, completed: 41, velocity: 103 },
-    { sprint: "Sprint 15", planned: 42, completed: 40, velocity: 95 }
-  ];
-
-  const codeQualityTrend = [
-    { week: "Week 1", quality: 85, coverage: 78, complexity: 12 },
-    { week: "Week 2", quality: 88, coverage: 82, complexity: 11 },
-    { week: "Week 3", quality: 90, coverage: 84, complexity: 10 },
-    { week: "Week 4", quality: 92, coverage: 84, complexity: 9 }
-  ];
-
+export const DevelopmentTab = ({ engineeringMetrics }: { engineeringMetrics: any }) => {
+  const developmentMetrics = engineeringMetrics?.development || {};
+  const velocityData = engineeringMetrics?.velocityData || [];
+  const codeQualityTrend = engineeringMetrics?.codeQualityTrend || [];
   return (
     <div className="space-y-6">
       {/* Development KPIs */}
@@ -43,7 +21,6 @@ export const DevelopmentTab = () => {
             <Progress value={developmentMetrics.codeCoverage} className="mt-2" />
           </CardContent>
         </Card>
-        
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Code Quality</CardTitle>
@@ -54,7 +31,6 @@ export const DevelopmentTab = () => {
             <Progress value={developmentMetrics.codeQuality} className="mt-2" />
           </CardContent>
         </Card>
-        
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Build Success</CardTitle>
@@ -65,7 +41,6 @@ export const DevelopmentTab = () => {
             <Progress value={developmentMetrics.buildSuccess} className="mt-2" />
           </CardContent>
         </Card>
-        
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Lead Time</CardTitle>

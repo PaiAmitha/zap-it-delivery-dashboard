@@ -6,10 +6,11 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface FinanceDataFormProps {
   formData: any;
-  handleInputChange: (field: string, value: string) => void;
+  onChange: (field: string, value: string) => void;
 }
 
-export const FinanceDataForm = ({ formData, handleInputChange }: FinanceDataFormProps) => {
+export const FinanceDataForm = ({ formData, onChange }: FinanceDataFormProps) => {
+  const handleInputChange = onChange;
   const handleSalaryChange = (field: string, value: string) => {
     // Remove $ if present and any non-numeric characters except decimal point
     const numericValue = value.replace(/[^0-9.]/g, '');

@@ -3,11 +3,12 @@ import { EnhancedKPICard } from "@/components/dashboard/EnhancedKPICard";
 import { Users, CheckCircle, AlertTriangle, AlertCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { getDashboard } from "@/lib/api";
+import { getDashboard, getEscalations } from "@/lib/api";
 
 export const DashboardKPIs = () => {
   const navigate = useNavigate();
   const [dashboard, setDashboard] = useState<any>(null);
+  const [escalationsCount, setEscalationsCount] = useState<number>(0);
 
   useEffect(() => {
     const fetchDashboard = async () => {
@@ -19,13 +20,29 @@ export const DashboardKPIs = () => {
         setDashboard(null);
       }
     };
+    const fetchEscalations = async () => {
+      try {
+        const token = localStorage.getItem('token') || '';
+        const result: any = await getEscalations(token);
+        if (Array.isArray(result)) {
+          setEscalationsCount(result.length);
+        } else if (result && Array.isArray((result as any).escalations)) {
+          setEscalationsCount((result as any).escalations.length);
+        } else {
+          setEscalationsCount(0);
+        }
+      } catch {
+        setEscalationsCount(0);
+      }
+    };
     fetchDashboard();
+    fetchEscalations();
   }, []);
 
   const kpiData = dashboard ? [
     {
       title: "Active Projects",
-      value: dashboard.active_projects?.length ?? 0,
+      value: dashboard.dashboard_kpis?.activeProjects ?? dashboard.active_projects?.length ?? 0,
       subtitle: "Currently in progress",
       icon: Users,
       bgColor: "bg-blue-50",
@@ -36,7 +53,7 @@ export const DashboardKPIs = () => {
     },
     {
       title: "On Track",
-      value: dashboard.active_projects?.filter((p: any) => p.healthStatus === "On Track").length ?? 0,
+      value: dashboard.dashboard_kpis?.onTrackProjects ?? 0,
       subtitle: "Meeting targets",
       icon: CheckCircle,
       bgColor: "bg-emerald-50",
@@ -47,7 +64,7 @@ export const DashboardKPIs = () => {
     },
     {
       title: "At Risk",
-      value: dashboard.active_projects?.filter((p: any) => p.healthStatus === "At Risk").length ?? 0,
+      value: dashboard.dashboard_kpis?.criticalProjects ?? 0,
       subtitle: "Need attention",
       icon: AlertTriangle,
       bgColor: "bg-amber-50",
@@ -58,7 +75,7 @@ export const DashboardKPIs = () => {
     },
     {
       title: "Escalations",
-      value: dashboard.escalations_count ?? 0,
+      value: escalationsCount,
       subtitle: "Requires action",
       icon: AlertCircle,
       bgColor: "bg-red-50",
@@ -68,8 +85,15 @@ export const DashboardKPIs = () => {
     }
   ] : [];
 
-  const handleKPIClick = (route: string) => {
-    navigate(route);
+  const handleKPIClick = (kpi: any) => {
+    // For status-based KPIs, pass filter in navigation state
+    if (kpi.title === "On Track") {
+      navigate("/projects", { state: { filter: { type: "status", value: "On Track" } } });
+    } else if (kpi.title === "At Risk") {
+      navigate("/projects", { state: { filter: { type: "status", value: "Critical" } } });
+    } else {
+      navigate(kpi.route);
+    }
   };
 
   return (
@@ -85,7 +109,7 @@ export const DashboardKPIs = () => {
           bgColor={kpi.bgColor}
           iconBgColor={kpi.iconBgColor}
           textColor={kpi.textColor}
-          onClick={() => handleKPIClick(kpi.route)}
+          onClick={() => handleKPIClick(kpi)}
           className="animate-scale-in"
           style={{ animationDelay: `${index * 0.1}s` } as any}
         />

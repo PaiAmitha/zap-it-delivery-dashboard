@@ -1,14 +1,14 @@
 from datetime import date
-from infrastructure.db import SessionLocal, init_db
-from domain.models.employee import Employee
-from domain.models.resource import Resource
-from domain.models.project import Project
-from domain.models.escalation import Escalation
-from domain.models.milestone import Milestone
-from domain.models.risk import Risk
-from domain.models.kpi import KPI
-from domain.models.intern import Intern
-from domain.models.finance import Finance
+from src.infrastructure.db import SessionLocal, init_db
+from src.domain.models.employee import Employee
+from src.domain.models.resource import Resource
+from src.domain.models.project import Project
+from src.domain.models.escalation import Escalation
+from src.domain.models.milestone import Milestone
+from src.domain.models.risk import Risk
+from src.domain.models.kpi import KPI
+from src.domain.models.intern import Intern
+from src.domain.models.finance import Finance
 
 init_db()
 session = SessionLocal()
@@ -42,8 +42,7 @@ project1 = Project(
     team_size=10,
     engineering_manager="Sarah Johnson",
     required_skills_list="Python, Flask, PostgreSQL",
-    milestones="MVP, UAT, Go-Live",
-    risks="Performance, Budget",
+    # milestones and risks relationships are handled separately, not as strings
     kpis="92% On-Time",
     financial_summary="Healthy",
     resource_allocation="Optimal",
@@ -64,7 +63,7 @@ project1 = Project(
     dependencies_updated="Yes",
     category="Software",
     progress=80,
-    teamLead="Sarah Johnson"
+    team_lead="Sarah Johnson"
 )
 ## Removed all leftover lines from incomplete Employee object
 
@@ -177,8 +176,6 @@ project1 = Project(
     team_size=10,
     engineering_manager="Sarah Johnson",
     required_skills_list="Python, Flask, PostgreSQL",
-    milestones="MVP, UAT, Go-Live",
-    risks="Performance, Budget",
     kpis="92% On-Time",
     financial_summary="Healthy",
     resource_allocation="Optimal",
@@ -199,6 +196,47 @@ project1 = Project(
     dependencies_updated="Yes"
 )
 session.add(project1)
+session.commit()  # Commit to assign an ID to project1
+
+from src.domain.models.sprint import Sprint
+# Add sample sprints for project1 (after commit so project1.id is set)
+sprint1 = Sprint(
+    project_id=project1.id,
+    sprint_number=1,
+    name="Sprint 1",
+    start_date=date(2024, 5, 1),
+    end_date=date(2024, 5, 14),
+    velocity=30.0,
+    predictability=0.9,
+    defect_leakage=0.02,
+    on_time_delivery=1.0,
+    planned_story_points=40,
+    completed_story_points=30,
+    test_cases_executed=100,
+    test_cases_passed=98,
+    created_at=date(2024, 5, 1),
+    updated_at=date(2024, 5, 14)
+)
+session.add(sprint1)
+
+sprint2 = Sprint(
+    project_id=project1.id,
+    sprint_number=2,
+    name="Sprint 2",
+    start_date=date(2024, 5, 15),
+    end_date=date(2024, 5, 28),
+    velocity=35.0,
+    predictability=0.95,
+    defect_leakage=0.01,
+    on_time_delivery=1.0,
+    planned_story_points=45,
+    completed_story_points=35,
+    test_cases_executed=110,
+    test_cases_passed=109,
+    created_at=date(2024, 5, 15),
+    updated_at=date(2024, 5, 28)
+)
+session.add(sprint2)
 
 # Escalation
 escalation1 = Escalation(
@@ -216,50 +254,107 @@ escalation1 = Escalation(
     severity="Critical",
     actions_taken="Monitoring, Optimization",
     follow_up="Daily standup review",
-    # UI fields
     title="API Performance Issues",
     customer="TechCorp Industries",
     project="Project Alpha",
-    dateRaised="2024-06-01",
-    resolutionETA="2024-06-08",
     description="Critical performance degradation in API response times affecting customer operations."
 )
 session.add(escalation1)
 
-# Milestone
+# Milestones for project1
 milestone1 = Milestone(
     name="MVP",
-    progress=100,
     status="Completed",
+    progress=100,
     date=date(2024, 5, 15),
-    project_id=1,
+    project_id=project1.id,
     milestone_type="Release",
     owner="Sarah Johnson",
     completion_date=date(2024, 5, 15),
     notes="Initial MVP delivered",
     risk_level="Low"
 )
-session.add(milestone1)
-
-# Risk
-risk1 = Risk(
-    issue="Budget Overrun",
+milestone2 = Milestone(
+    name="UAT",
+    status="In Progress",
+    progress=60,
+    date=date(2024, 6, 1),
+    project_id=project1.id,
+    milestone_type="Testing",
+    owner="Alex Rodriguez",
+    notes="User acceptance testing ongoing",
+    risk_level="Medium"
+)
+milestone3 = Milestone(
+    name="Go-Live",
+    status="Delayed",
+    progress=0,
+    date=date(2024, 6, 30),
+    project_id=project1.id,
+    milestone_type="Deployment",
     owner="Sarah Johnson",
-    priority="Medium",
+    notes="Go-live delayed due to pending UAT",
+    risk_level="High"
+)
+session.add_all([milestone1, milestone2, milestone3])
+
+# Risks for project1
+risk1 = Risk(
+    title="Budget Overrun",
+    description="Budget overrun discussion required with client to align on additional scope.",
+    owner="Sarah Johnson",
     status="Open",
-    project_id=1,
+    impact="Medium",
+    likelihood="Likely",
+    mitigation_plan="Scope review",
+    project_id=project1.id,
+    issue="Budget Overrun",
+    priority="Medium",
     risk_type="Financial",
     risk_level="Medium",
     risk_date=date(2024, 5, 20),
-    mitigation_plan="Scope review",
-    impact="Medium",
     probability="Likely",
     notes="Budget overrun discussion required with client to align on additional scope."
 )
-session.add(risk1)
+risk2 = Risk(
+    title="Resource Shortage",
+    description="Shortage of skilled developers may delay project milestones.",
+    owner="Alex Rodriguez",
+    status="Closed",
+    impact="High",
+    likelihood="Possible",
+    mitigation_plan="Hire contractors",
+    project_id=project1.id,
+    issue="Resource Shortage",
+    priority="High",
+    risk_type="Resource",
+    risk_level="High",
+    risk_date=date(2024, 5, 25),
+    probability="Possible",
+    notes="Contractors hired to mitigate risk."
+)
+risk3 = Risk(
+    title="Technical Debt",
+    description="Accumulation of technical debt may impact maintainability.",
+    owner="Sarah Johnson",
+    status="Open",
+    impact="Low",
+    likelihood="Unlikely",
+    mitigation_plan="Refactoring sprints",
+    project_id=project1.id,
+    issue="Technical Debt",
+    priority="Low",
+    risk_type="Technical",
+    risk_level="Low",
+    risk_date=date(2024, 6, 5),
+    probability="Unlikely",
+    notes="Scheduled refactoring in next sprint."
+)
+session.add_all([risk1, risk2, risk3])
 
 # KPI
 kpi1 = KPI(
+    name="On-Time Delivery",
     title="On-Time Delivery",
     value=92.0,
     subtitle="Project Alpha",

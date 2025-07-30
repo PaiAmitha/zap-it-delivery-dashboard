@@ -8,6 +8,7 @@ import { ProjectOverviewTab } from "./modal/ProjectOverviewTab";
 import { DeliveryMetricsTab } from "./modal/DeliveryMetricsTab";
 import { EngineeringTab } from "./modal/EngineeringTab";
 import { TeamTab } from "./modal/TeamTab";
+import { updateProject } from "@/lib/api";
 
 interface TeamMember {
   id: string;
@@ -36,13 +37,14 @@ interface Risk {
 
 interface EditProjectModalProps {
   isOpen: boolean;
-  onClose: () => void;
+  onClose: (refresh?: boolean) => void;
   projectData?: any;
 }
 
 export const EditProjectModal = ({ isOpen, onClose, projectData }: EditProjectModalProps) => {
   const { toast } = useToast();
   const { triggerCRUDEvent } = useRealtimeData();
+  const [loading, setLoading] = useState(false);
   
   const [formData, setFormData] = useState({
     projectName: projectData?.name || "",
@@ -123,15 +125,27 @@ export const EditProjectModal = ({ isOpen, onClose, projectData }: EditProjectMo
 
   const [isSprintDataModalOpen, setIsSprintDataModalOpen] = useState(false);
 
-  const handleSubmit = () => {
-    // Trigger CRUD event for project update
-    triggerCRUDEvent('updated', 'project', { ...projectData, ...formData });
-    
-    toast({
-      title: "Project Updated",
-      description: "Project details have been successfully updated. All dashboard data synchronized.",
-    });
-    onClose();
+  const handleSubmit = async () => {
+    if (!projectData?.id) return;
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token') || '';
+      await updateProject(token, projectData.id, { ...projectData, ...formData });
+      triggerCRUDEvent('updated', 'project', { ...projectData, ...formData });
+      toast({
+        title: "Project Updated",
+        description: "Project details have been successfully updated. All dashboard data synchronized.",
+      });
+      onClose(true); // trigger parent refresh
+    } catch (err: any) {
+      toast({
+        title: "Error Updating Project",
+        description: err?.message || 'Failed to update project',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -192,8 +206,8 @@ export const EditProjectModal = ({ isOpen, onClose, projectData }: EditProjectMo
         </Tabs>
 
         <DialogFooter className="flex flex-col sm:flex-row gap-2">
-          <Button variant="outline" onClick={onClose} className="w-full sm:w-auto">Cancel</Button>
-          <Button onClick={handleSubmit} className="w-full sm:w-auto">Save Changes</Button>
+          <Button variant="outline" onClick={() => onClose(false)} className="w-full sm:w-auto" disabled={loading}>Cancel</Button>
+          <Button onClick={handleSubmit} className="w-full sm:w-auto" disabled={loading}>Save Changes</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

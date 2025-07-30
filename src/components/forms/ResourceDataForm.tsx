@@ -9,10 +9,11 @@ import { MultiSelect } from "@/components/ui/multi-select";
 
 interface ResourceDataFormProps {
   formData: any;
-  handleInputChange: (field: string, value: string | string[]) => void;
+  onChange: (field: string, value: string | string[]) => void;
 }
 
-export const ResourceDataForm = ({ formData, handleInputChange }: ResourceDataFormProps) => {
+export const ResourceDataForm = ({ formData, onChange }: ResourceDataFormProps) => {
+  const handleInputChange = onChange;
   const primarySkills = [
     { label: "React.js", value: "React.js" },
     { label: "Node.js", value: "Node.js" },

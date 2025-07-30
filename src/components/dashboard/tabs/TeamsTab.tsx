@@ -1,8 +1,7 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Users, UserCheck, Award } from "lucide-react";
+import { Users, Award } from "lucide-react";
 import { UserHoverCard } from "@/components/ui/user-hover-card";
 import {
   Table,
@@ -14,37 +13,41 @@ import {
 } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-export const TeamsTab = () => {
-  // Sample team data
+
+export const TeamsTab = ({ teams, teamMembers }: { teams: any, teamMembers: any[] }) => {
+  // Compute team composition metrics from teamMembers
+  const totalMembers = teamMembers?.length || 0;
+  const activeMembers = teamMembers?.filter(m => (m.status || '').toLowerCase() === 'active').length || 0;
+  const avgExperience = totalMembers > 0
+    ? (teamMembers.reduce((sum, m) => sum + (parseFloat(m.experience) || 0), 0) / totalMembers).toFixed(1)
+    : '-';
   const teamComposition = {
-    totalMembers: 12,
-    activeMembers: 11,
-    averageExperience: "4.2 years",
+    totalMembers,
+    activeMembers,
+    averageExperience: avgExperience
   };
 
-  const teamMembers = [
-    { id: "1", name: "Sarah Johnson", role: "Delivery Manager", experience: "8 years", allocation: "100%", status: "Active", performance: "Excellent", department: "Project Management", location: "New York" },
-    { id: "2", name: "Mike Chen", role: "Scrum Master", experience: "5 years", allocation: "100%", status: "Active", performance: "Good", department: "Engineering", location: "San Francisco" },
-    { id: "3", name: "Alex Rodriguez", role: "Tech Lead", experience: "7 years", allocation: "100%", status: "Active", performance: "Excellent", department: "Engineering", location: "Austin" },
-    { id: "4", name: "Emily Davis", role: "Senior Developer", experience: "6 years", allocation: "100%", status: "Active", performance: "Good", department: "Engineering", location: "Remote" },
-    { id: "5", name: "James Wilson", role: "Senior Developer", experience: "5 years", allocation: "100%", status: "Active", performance: "Excellent", department: "Engineering", location: "Seattle" },
-    { id: "6", name: "Lisa Zhang", role: "Frontend Developer", experience: "4 years", allocation: "80%", status: "Active", performance: "Good", department: "Engineering", location: "Remote" },
-    { id: "7", name: "David Kumar", role: "Backend Developer", experience: "3 years", allocation: "100%", status: "Active", performance: "Good", department: "Engineering", location: "Bangalore" },
-    { id: "8", name: "Maria Garcia", role: "QA Engineer", experience: "4 years", allocation: "100%", status: "Active", performance: "Excellent", department: "Quality Assurance", location: "Mexico City" },
-    { id: "9", name: "Tom Anderson", role: "DevOps Engineer", experience: "6 years", allocation: "60%", status: "Active", performance: "Good", department: "Engineering", location: "London" },
-    { id: "10", name: "Rachel Kim", role: "UI/UX Designer", experience: "5 years", allocation: "80%", status: "Active", performance: "Excellent", department: "Design", location: "Seoul" },
-    { id: "11", name: "John Smith", role: "Junior Developer", experience: "2 years", allocation: "100%", status: "Active", performance: "Good", department: "Engineering", location: "Toronto" },
-    { id: "12", name: "Anna Brown", role: "Business Analyst", experience: "4 years", allocation: "50%", status: "On Leave", performance: "Good", department: "Business Analysis", location: "Sydney" }
-  ];
-
-  const roleDistribution = [
-    { role: "Developers", count: 6, percentage: 50, color: "bg-blue-500" },
-    { role: "QA Engineers", count: 1, percentage: 8, color: "bg-green-500" },
-    { role: "DevOps", count: 1, percentage: 8, color: "bg-purple-500" },
-    { role: "Management", count: 2, percentage: 17, color: "bg-orange-500" },
-    { role: "Design", count: 1, percentage: 8, color: "bg-pink-500" },
-    { role: "Business", count: 1, percentage: 8, color: "bg-teal-500" }
-  ];
+  // Compute role distribution from teamMembers
+  let roleDistribution: { role: string; count: number; percentage: number; color: string }[] = [];
+  if (teamMembers && teamMembers.length > 0) {
+    const roleCounts: Record<string, number> = {};
+    teamMembers.forEach(member => {
+      if (member.role) {
+        roleCounts[member.role] = (roleCounts[member.role] || 0) + 1;
+      }
+    });
+    const total = teamMembers.length;
+    const colors = [
+      "bg-blue-500", "bg-green-500", "bg-purple-500", "bg-orange-500", "bg-pink-500", "bg-teal-500", "bg-yellow-500"
+    ];
+    let colorIdx = 0;
+    roleDistribution = Object.entries(roleCounts).map(([role, count]) => ({
+      role,
+      count,
+      percentage: Math.round((count / total) * 100),
+      color: colors[colorIdx++ % colors.length]
+    }));
+  }
 
   const getPerformanceBadge = (performance: string) => {
     switch (performance) {
@@ -66,7 +69,7 @@ export const TeamsTab = () => {
 
   return (
     <div className="space-y-6">
-      {/* Team Composition KPIs - removed Retention Rate and Satisfaction */}
+      {/* Team Composition KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -80,7 +83,6 @@ export const TeamsTab = () => {
             </p>
           </CardContent>
         </Card>
-        
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Avg Experience</CardTitle>
@@ -91,7 +93,6 @@ export const TeamsTab = () => {
             <p className="text-xs text-muted-foreground">Team average</p>
           </CardContent>
         </Card>
-        
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Active Members</CardTitle>
@@ -99,12 +100,11 @@ export const TeamsTab = () => {
           <CardContent>
             <div className="text-2xl font-bold">{teamComposition.activeMembers}</div>
             <p className="text-xs text-muted-foreground">
-              {Math.round((teamComposition.activeMembers / teamComposition.totalMembers) * 100)}% active
+              {teamComposition.totalMembers > 0 ? Math.round((teamComposition.activeMembers / teamComposition.totalMembers) * 100) : 0}% active
             </p>
           </CardContent>
         </Card>
       </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Team Members Table */}
         <Card className="lg:col-span-2">
@@ -125,7 +125,7 @@ export const TeamsTab = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {teamMembers.map((member) => (
+                  {teamMembers && teamMembers.map((member) => (
                     <TableRow key={member.id}>
                       <TableCell className="font-medium">
                         <UserHoverCard
@@ -133,7 +133,7 @@ export const TeamsTab = () => {
                           role={member.role}
                           department={member.department}
                           location={member.location}
-                          email={`${member.name.toLowerCase().replace(/\s+/g, '.')}@company.com`}
+                          email={`${member.name?.toLowerCase().replace(/\s+/g, '.')}@company.com`}
                         >
                           <span className="cursor-pointer hover:text-blue-600 transition-colors">
                             {member.name}
@@ -160,7 +160,6 @@ export const TeamsTab = () => {
             </ScrollArea>
           </CardContent>
         </Card>
-
         {/* Role Distribution */}
         <Card className="lg:col-span-2">
           <CardHeader>

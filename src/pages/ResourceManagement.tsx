@@ -125,7 +125,7 @@ const ResourceManagement = () => {
                   <span>Interns</span>
                 </TabsTrigger>
                 <TabsTrigger 
-                  value="financials" 
+                  value="financial" 
                   className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-1 sm:px-2 lg:px-4 py-2 data-[state=active]:bg-blue-500 data-[state=active]:text-white rounded-lg transition-all duration-300"
                 >
                   <Settings className="h-3 w-3 sm:h-4 sm:w-4" />
@@ -151,7 +151,7 @@ const ResourceManagement = () => {
               <InternManagementTab />
             </TabsContent>
 
-            <TabsContent value="financials" className="space-y-3 sm:space-y-4 lg:space-y-6 mt-4 sm:mt-6 animate-fade-in-up">
+            <TabsContent value="financial" className="space-y-3 sm:space-y-4 lg:space-y-6 mt-4 sm:mt-6 animate-fade-in-up">
               <FinancialsTab />
             </TabsContent>
           </Tabs>

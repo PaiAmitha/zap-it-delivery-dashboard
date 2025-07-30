@@ -1,26 +1,39 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FinancialSummaryCard } from "@/components/dashboard/FinancialSummaryCard";
 import { useEffect, useState } from "react";
-import { getFinance } from "@/lib/api";
+import { getFinancialDashboard } from "@/lib/api";
 
 export const FinancialsTab = () => {
   const [finance, setFinance] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
   useEffect(() => {
-    const fetchFinance = async () => {
+    const fetchFinancials = async () => {
+      setLoading(true);
+      setError(null);
       try {
         const token = localStorage.getItem('token') || '';
-        const data = await getFinance(token);
-        setFinance(data);
-      } catch (err) {
-        // Optionally handle error
+        const result = await getFinancialDashboard(token);
+        setFinance((result as any).financialDashboard || {});
+      } catch (err: any) {
+        setError(err?.message || 'Failed to fetch financials');
+      } finally {
+        setLoading(false);
       }
     };
-    fetchFinance();
+    fetchFinancials();
   }, []);
 
   // Adapt backend data to FinancialSummaryCard props
-  const monthlyFinancialData = finance?.monthlyFinancials || [];
+  const monthlyFinancialData = (finance?.monthlyFinancials || []).map((item: any) => ({
+    month: item.month,
+    totalCost: item.total ?? 0,
+    billableCost: item.billable ?? 0,
+    nonBillableCost: item.nonBillable ?? 0,
+    internCost: item.intern ?? 0,
+    nonBillablePercentage: item.total ? (item.nonBillable / item.total) * 100 : 0,
+  }));
   const ytdTotals = finance?.ytdTotals || { total: 0, billable: 0, nonBillable: 0, intern: 0 };
 
   return (
@@ -30,10 +43,18 @@ export const FinancialsTab = () => {
           <CardTitle>Financial Overview</CardTitle>
         </CardHeader>
         <CardContent>
-          <FinancialSummaryCard
-            monthlyData={monthlyFinancialData}
-            ytdTotals={ytdTotals}
-          />
+          {loading ? (
+            <div className="text-gray-500">Loading financials...</div>
+          ) : error ? (
+            <div className="text-red-500">{error}</div>
+          ) : (!monthlyFinancialData.length && !ytdTotals.total) ? (
+            <div className="text-gray-500">No financial data available.</div>
+          ) : (
+            <FinancialSummaryCard
+              monthlyData={monthlyFinancialData}
+              ytdTotals={ytdTotals}
+            />
+          )}
         </CardContent>
       </Card>
     </div>

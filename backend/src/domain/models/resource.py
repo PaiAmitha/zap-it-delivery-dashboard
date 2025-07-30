@@ -4,7 +4,9 @@ from .base import Base
 class Resource(Base):
     __tablename__ = 'resources'
     id = Column(Integer, primary_key=True)
-    employee_id = Column(String) # HR Data Section
+    employee_id = Column(String)
+    email = Column(String)
+    phone = Column(String)
     full_name = Column(String)
     designation = Column(String)
     department = Column(String)
@@ -14,7 +16,6 @@ class Resource(Base):
     joining_date = Column(Date)
     employment_type = Column(String)
     reporting_manager = Column(String)
-
     primary_skill = Column(String)
     skill_category = Column(String)
     billable_status = Column(Boolean)
@@ -26,21 +27,18 @@ class Resource(Base):
     aging_in_non_billable = Column(Integer)
     current_bench_status = Column(Boolean)
     engagement_detail = Column(String)
-
     is_intern = Column(Boolean)
     internship_start_date = Column(Date)
     internship_end_date = Column(Date)
     assigned_project = Column(String)
     mentor_name = Column(String)
     stipend = Column(Float)
-
     monthly_salary_cost = Column(Float)
     billing_rate = Column(Float)
     monthly_revenue_generated = Column(Float)
     cost_center = Column(String)
     total_ytd_cost = Column(Float)
     total_ytd_revenue = Column(Float)
-
     utilization_rate = Column(Float)
     project_success_rate = Column(Float)
     performance_rating = Column(Float)
@@ -56,8 +54,14 @@ class Resource(Base):
     monthly_cost = Column(Float)
     risk_level = Column(String)
     experience_bucket = Column(String)
-    # Analytics & Management Fields
     bench_reason = Column(String)
+    # Additional fields for full compatibility
+    utilization_percentage = Column(Float)
+    productivity_score = Column(Float)
+    last_project_end_date = Column(Date)
+    primary_skills = Column(String)
+    secondary_skills = Column(String)
+    bench_start_date = Column(Date)
     bench_aging_bucket = Column(String)
     bench_monthly_cost = Column(Float)
     bench_avg_daily_cost = Column(Float)
@@ -89,3 +93,35 @@ class Resource(Base):
     performance_feedback_goals = Column(String)
     # Relationships
     employee_ref = Column(Integer, ForeignKey('employees.id'))
+
+    def to_dict(self):
+        result = {c.name: getattr(self, c.name) for c in self.__table__.columns}
+        result['employeeId'] = self.employee_id or self.id
+        result['fullName'] = self.full_name
+        result['email'] = self.email
+        result['phone'] = self.phone
+        # Always return skills as a list, never null
+        result['skills'] = self.skills.split(',') if self.skills else []
+        result['primarySkills'] = self.primary_skills.split(',') if self.primary_skills else []
+        result['secondarySkills'] = self.secondary_skills.split(',') if self.secondary_skills else []
+        result['seniorityLevel'] = self.seniority_level
+        result['experience'] = self.experience
+        result['joiningDate'] = str(self.joining_date) if self.joining_date else ''
+        result['employmentType'] = self.employment_type
+        result['reportingManager'] = self.reporting_manager
+        result['billableStatus'] = self.billable_status
+        result['currentEngagement'] = self.current_engagement
+        result['projectName'] = self.project_name
+        result['engagementDescription'] = self.engagement_description
+        result['engagementStartDate'] = str(self.engagement_start_date) if self.engagement_start_date else ''
+        result['engagementEndDate'] = str(self.engagement_end_date) if self.engagement_end_date else ''
+        result['monthlySalaryCost'] = self.monthly_salary_cost
+        result['billingRate'] = self.billing_rate
+        result['monthlyRevenueGenerated'] = self.monthly_revenue_generated
+        result['costCenter'] = self.cost_center
+        result['totalYTDCost'] = self.total_ytd_cost
+        result['totalYTDRevenue'] = self.total_ytd_revenue
+        result['benchDays'] = self.bench_days
+        result['benchStartDate'] = str(self.bench_start_date) if self.bench_start_date else ''
+        result['isIntern'] = self.is_intern
+        return result

@@ -1,5 +1,6 @@
 
 
+
 from sqlalchemy import Column, Integer, String, Float, Boolean, Date, ForeignKey, Table
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
@@ -12,29 +13,82 @@ project_resource = Table('project_resource', Base.metadata,
     Column('resource_id', Integer, ForeignKey('resources.id'))
 )
 
-project_employee = Table('project_employee', Base.metadata,
-    Column('project_id', Integer, ForeignKey('projects.id')),
-    Column('employee_id', Integer, ForeignKey('employees.id'))
-)
+
 
 class Resource(Base):
     __tablename__ = 'resources'
-    id = Column(Integer, primary_key=True)
-    name = Column(String, nullable=False)
-    primary_skill = Column(String)
-    skill_category = Column(String)
-    billable_status = Column(Boolean)
-    current_engagement = Column(String)
-    project_name = Column(String)
-    engagement_description = Column(String)
-    aging_days = Column(Integer)
-    utilization = Column(Float)
+    resource_id = Column(String, unique=True)
+    fullName = Column(String, nullable=False)
+    designation = Column(String)
+    department = Column(String)
+    seniorityLevel = Column(String)
+    experience = Column(Integer)
     location = Column(String)
-    billing_rate = Column(Float)
-    availability_date = Column(Date)
-    employee_id = Column(Integer, ForeignKey('employees.id'))
-    employee = relationship('Employee', back_populates='resources')
+    joiningDate = Column(Date)
+    employmentType = Column(String)
+    reportingManager = Column(String)
+
+    skills = Column(String)  # Comma-separated string
+    billableStatus = Column(Boolean)
+    currentEngagement = Column(String)
+    engagementDescription = Column(String)
+    engagementStartDate = Column(Date)
+    engagementEndDate = Column(Date)
+    agingInNonBillable = Column(Integer)
+    currentBenchStatus = Column(Boolean)
+    engagementDetail = Column(String)
+
+    isIntern = Column(Boolean)
+    internshipStartDate = Column(Date)
+    internshipEndDate = Column(Date)
+    assignedProject = Column(String)
+    mentorName = Column(String)
+    stipend = Column(Float)
+
+    monthlySalaryCost = Column(Float)
+    billingRate = Column(Float)
+    monthlyRevenueGenerated = Column(Float)
+    costCenter = Column(String)
+    totalYTDCost = Column(Float)
+    totalYTDRevenue = Column(Float)
+
+    # Relationships
     projects = relationship('Project', secondary=project_resource, back_populates='resources')
+
+    def to_dict(self):
+        return {
+            'resourceId': self.resource_id,
+            'fullName': self.fullName,
+            'designation': self.designation,
+            'department': self.department,
+            'seniorityLevel': self.seniorityLevel,
+            'experience': self.experience,
+            'location': self.location,
+            'joiningDate': self.joiningDate.isoformat() if self.joiningDate else None,
+            'employmentType': self.employmentType,
+            'reportingManager': self.reportingManager,
+            'skills': self.skills.split(',') if self.skills else [],
+            'billableStatus': self.billableStatus,
+            'currentEngagement': self.currentEngagement,
+            'engagementDescription': self.engagementDescription,
+            'engagementStartDate': self.engagementStartDate.isoformat() if self.engagementStartDate else None,
+            'engagementEndDate': self.engagementEndDate.isoformat() if self.engagementEndDate else None,
+            'agingInNonBillable': self.agingInNonBillable,
+            'currentBenchStatus': self.currentBenchStatus,
+            'engagementDetail': self.engagementDetail,
+            'isIntern': self.isIntern,
+            'internshipStartDate': self.internshipStartDate.isoformat() if self.internshipStartDate else None,
+            'internshipEndDate': self.internshipEndDate.isoformat() if self.internshipEndDate else None,
+            'assignedProject': self.assignedProject,
+            'mentorName': self.mentorName,
+            'stipend': self.stipend,
+            'monthlySalaryCost': self.monthlySalaryCost,
+            'billingRate': self.billingRate,
+            'monthlyRevenueGenerated': self.monthlyRevenueGenerated,
+            'costCenter': self.costCenter,
+            'totalYTDCost': self.totalYTDCost,
+            'totalYTDRevenue': self.totalYTDRevenue
+        }
 
 class Project(Base):
     __tablename__ = 'projects'
@@ -51,32 +105,11 @@ class Project(Base):
     profit_margin = Column(Float)
     utilization_rate = Column(Float)
     resources = relationship('Resource', secondary=project_resource, back_populates='projects')
-    employees = relationship('Employee', secondary=project_employee, back_populates='projects')
+    # employees = relationship('Employee', secondary=project_employee, back_populates='projects')
     escalations = relationship('Escalation', back_populates='project')
     finances = relationship('Finance', back_populates='project')
 
-class Employee(Base):
-    __tablename__ = 'employees'
-    id = Column(Integer, primary_key=True)
-    full_name = Column(String, nullable=False)
-    designation = Column(String)
-    department = Column(String)
-    seniority_level = Column(String)
-    years_of_experience = Column(Float)
-    location = Column(String)
-    joining_date = Column(Date)
-    resource_type = Column(String)
-    reporting_manager = Column(String)
-    primary_skill = Column(String)
-    billable_status = Column(Boolean)
-    current_engagement = Column(String)
-    project_name = Column(String)
-    engagement_description = Column(String)
-    bench_days = Column(Integer)
-    cost_rate = Column(Float)
-    billing_rate = Column(Float)
-    resources = relationship('Resource', back_populates='employee')
-    projects = relationship('Project', secondary=project_employee, back_populates='employees')
+
 
 class Intern(Base):
     __tablename__ = 'interns'
@@ -91,18 +124,36 @@ class Intern(Base):
     education = Column(String)
     stipend = Column(Float)
     conversion_potential = Column(String)
-    employee_id = Column(Integer, ForeignKey('employees.id'))
-    employee = relationship('Employee')
+
 
 class Escalation(Base):
     __tablename__ = 'escalations'
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     issue = Column(String)
     owner = Column(String)
     priority = Column(String)
     status = Column(String)
     project_id = Column(Integer, ForeignKey('projects.id'))
+    escalation_type = Column(String)
+    escalation_date = Column(Date)
+    resolution_date = Column(Date)
+    resolution_status = Column(String)
+    escalation_notes = Column(String)
+    impact = Column(String)
+    severity = Column(String)
+    actions_taken = Column(String)
+    follow_up = Column(String)
+    title = Column(String)
+    customer = Column(String)
+    project = Column(String)
+    description = Column(String)
+    date_raised = Column(Date)
+    resolution_eta = Column(Date)
+    risk_level = Column(String)
     project = relationship('Project', back_populates='escalations')
+    
+    def to_dict(self):
+        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
 
 class Milestone(Base):
     __tablename__ = 'milestones'

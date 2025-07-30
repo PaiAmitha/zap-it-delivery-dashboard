@@ -1,6 +1,5 @@
-
 import { useState, useEffect } from "react";
-import { getEmployee } from "@/lib/api";
+import { getResourceDetails } from "@/lib/api";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { BreadcrumbNavigation } from "@/components/layout/BreadcrumbNavigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -47,13 +46,14 @@ const EngagementPlan = () => {
       setError(null);
       try {
         const token = localStorage.getItem('token') || '';
-        const data = await getEmployee(token, resourceId) as import("@/types/employee").Employee;
+        const result = await getResourceDetails(token, resourceId);
+        const data = (result as any).resourceDetails;
         setResourceData({
-          id: data.employee_id,
-          name: data.full_name,
+          id: data.resourceId,
+          name: data.fullName,
           role: data.designation,
-          releaseDate: data.last_project_end_date || '',
-          skills: data.primary_skills || [],
+          releaseDate: data.releaseDate || '',
+          skills: data.primarySkills || [],
         });
       } catch (err: any) {
         setError(err?.message || 'Failed to fetch resource');

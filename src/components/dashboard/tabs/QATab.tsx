@@ -1,40 +1,15 @@
 
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
 import { TestTube, Bug, CheckCircle, AlertTriangle } from "lucide-react";
 
-export const QATab = () => {
-  const qaMetrics = {
-    testCoverage: 78,
-    passRate: 94,
-    automationRate: 85,
-    defectDensity: 2.1
-  };
-
-  const defectTrend = [
-    { sprint: "Sprint 11", found: 15, fixed: 14, remaining: 1 },
-    { sprint: "Sprint 12", found: 12, fixed: 11, remaining: 2 },
-    { sprint: "Sprint 13", found: 8, fixed: 9, remaining: 1 },
-    { sprint: "Sprint 14", found: 10, fixed: 8, remaining: 3 },
-    { sprint: "Sprint 15", found: 6, fixed: 7, remaining: 2 }
-  ];
-
-  const defectDistribution = [
-    { type: "UI", count: 4, percentage: 22 },
-    { type: "Functional", count: 8, percentage: 44 },
-    { type: "Performance", count: 2, percentage: 11 },
-    { type: "Security", count: 1, percentage: 6 },
-    { type: "Integration", count: 3, percentage: 17 }
-  ];
-
-  const testAutomationData = [
-    { category: "Unit Tests", manual: 20, automated: 180, total: 200 },
-    { category: "Integration", manual: 35, automated: 65, total: 100 },
-    { category: "E2E Tests", manual: 25, automated: 35, total: 60 },
-    { category: "API Tests", manual: 10, automated: 90, total: 100 }
-  ];
-
+export const QATab = ({ engineeringMetrics }: { engineeringMetrics: any }) => {
+  const qaMetrics = engineeringMetrics?.qa || {};
+  const defectTrend = engineeringMetrics?.defectTrend || [];
+  const defectDistribution = engineeringMetrics?.defectDistribution || [];
+  const testAutomationData = engineeringMetrics?.testAutomationData || [];
   const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 
   return (
