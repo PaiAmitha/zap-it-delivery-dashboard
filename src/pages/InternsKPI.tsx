@@ -1,5 +1,18 @@
 import { useEffect, useState } from "react";
-import { getDashboard, DashboardData } from "@/lib/api";
+import { useResourceData } from "@/hooks/useResourceData";
+// import { getDashboard, DashboardData } from "@/lib/api";
+// Custom hook to fetch KPI counts from backend
+const useResourceKPIs = () => {
+  const [kpi, setKpi] = useState({ total: 0, billable: 0, nonBillable: 0, intern: 0 });
+  useEffect(() => {
+    fetch("/api/resources/kpi-counts") // already correct
+      .then(res => res.json())
+      .then(data => {
+        setKpi(data.resourceCounts || { total: 0, billable: 0, nonBillable: 0, intern: 0 });
+      });
+  }, []);
+  return kpi;
+};
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,49 +29,21 @@ import { Filter, GraduationCap, TrendingUp, Users, Heart } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, FunnelChart, Funnel, Cell } from 'recharts';
 
 const InternsKPI = () => {
+  // All analytics and KPIs are sourced only from dashboard API
+  const {
+    loading,
+    error,
+    internsData = [],
+    intern_conversion_funnel = [],
+    intern_monthly_conversion = [],
+    intern_learning_vs_productive = [],
+    intern_location_distribution = [],
+    billable_resources_count = 0,
+    non_billable_resources_count = 0,
+    total_resources = 0,
+  } = useResourceData() || {};
 
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [summaryStats, setSummaryStats] = useState<any>(null);
-  const [conversionFunnelData, setConversionFunnelData] = useState<any[]>([]);
-  const [monthlyConversionData, setMonthlyConversionData] = useState<any[]>([]);
-  const [learningVsProductiveData, setLearningVsProductiveData] = useState<any[]>([]);
-  const [locationDistribution, setLocationDistribution] = useState<any[]>([]);
-  const [internDetailsList, setInternDetailsList] = useState<any[]>([]);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        // TODO: Replace with real auth token logic
-        const token = localStorage.getItem('token') || '';
-        const data = await getDashboard(token);
-        setSummaryStats({
-          totalInterns: data.total_interns,
-          assigned: data.interns_assigned,
-          unassigned: data.interns_unassigned,
-          conversionRate: data.intern_conversion_rate,
-          avgLearningHours: data.avg_learning_hours,
-          avgProductiveHours: data.avg_productive_hours,
-        });
-        setConversionFunnelData(data.intern_conversion_funnel || []);
-        setMonthlyConversionData(data.intern_monthly_conversion || []);
-        setLearningVsProductiveData(data.intern_learning_vs_productive || []);
-        setLocationDistribution(data.intern_location_distribution || []);
-        setInternDetailsList(data.intern_details_list || []);
-      } catch (err: any) {
-        setError(err?.message || 'Failed to load data');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, []);
-
-  if (loading) return <div className="p-8 text-center">Loading...</div>;
-  if (error) return <div className="p-8 text-center text-red-500">{error}</div>;
-
+  // Helper functions for status and potential colors
   const getStatusColor = (status: string) => {
     switch (status) {
       case "Assigned": return "bg-green-100 text-green-800";
@@ -79,7 +64,6 @@ const InternsKPI = () => {
   return (
     <div className="space-y-6">
       <Breadcrumb />
-      
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Interns Analytics</h1>
@@ -93,80 +77,22 @@ const InternsKPI = () => {
         </div>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+      {/* Billable Resources KPI Card Example */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Total Interns</p>
-                <p className="text-2xl font-bold text-purple-600">{summaryStats.totalInterns}</p>
-              </div>
-              <GraduationCap className="h-6 w-6 text-purple-600" />
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Assigned</p>
-                <p className="text-2xl font-bold text-green-600">{summaryStats.assigned}</p>
+                <p className="text-sm text-gray-600">Billable Resources</p>
+                <p className="text-2xl font-bold text-green-600">{billable_resources_count}</p>
               </div>
               <Users className="h-6 w-6 text-green-600" />
             </div>
           </CardContent>
         </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Unassigned</p>
-                <p className="text-2xl font-bold text-yellow-600">{summaryStats.unassigned}</p>
-              </div>
-              <Users className="h-6 w-6 text-yellow-600" />
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Conversion Rate</p>
-                <p className="text-2xl font-bold text-blue-600">{summaryStats.conversionRate}%</p>
-              </div>
-              <TrendingUp className="h-6 w-6 text-blue-600" />
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Avg Learning Hrs</p>
-                <p className="text-2xl font-bold text-indigo-600">{summaryStats.avgLearningHours}</p>
-              </div>
-              <Heart className="h-6 w-6 text-indigo-600" />
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Avg Productive Hrs</p>
-                <p className="text-2xl font-bold text-orange-600">{summaryStats.avgProductiveHours}</p>
-              </div>
-              <TrendingUp className="h-6 w-6 text-orange-600" />
-            </div>
-          </CardContent>
-        </Card>
       </div>
+
+      {/* ...existing code for Interns KPI cards and analytics... */}
 
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -176,15 +102,19 @@ const InternsKPI = () => {
             <CardTitle>Monthly Conversion Rate Trend</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={monthlyConversionData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip />
-                <Line type="monotone" dataKey="conversionRate" stroke="#8884d8" strokeWidth={2} />
-              </LineChart>
-            </ResponsiveContainer>
+            {intern_monthly_conversion && intern_monthly_conversion.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={intern_monthly_conversion}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="conversionRate" stroke="#8884d8" strokeWidth={2} />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="text-center text-gray-500 py-8">No monthly conversion data available.</div>
+            )}
           </CardContent>
         </Card>
 
@@ -194,16 +124,20 @@ const InternsKPI = () => {
             <CardTitle>Learning vs Productive Hours</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={learningVsProductiveData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="intern" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="learning" fill="#8884d8" name="Learning Hours" />
-                <Bar dataKey="productive" fill="#82ca9d" name="Productive Hours" />
-              </BarChart>
-            </ResponsiveContainer>
+            {intern_learning_vs_productive && intern_learning_vs_productive.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={intern_learning_vs_productive}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="intern" />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="learning" fill="#8884d8" name="Learning Hours" />
+                  <Bar dataKey="productive" fill="#82ca9d" name="Productive Hours" />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="text-center text-gray-500 py-8">No learning vs productive data available.</div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -214,14 +148,18 @@ const InternsKPI = () => {
           <CardTitle>Location-wise Intern Distribution</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {locationDistribution.map((location) => (
-              <div key={location.location} className="text-center p-4 bg-gray-50 rounded-lg">
-                <p className="text-2xl font-bold text-blue-600">{location.count}</p>
-                <p className="text-sm text-gray-600">{location.location}</p>
-              </div>
-            ))}
-          </div>
+          {intern_location_distribution && intern_location_distribution.length > 0 ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {intern_location_distribution.map((location) => (
+                <div key={location.location} className="text-center p-4 bg-gray-50 rounded-lg">
+                  <p className="text-2xl font-bold text-blue-600">{location.count}</p>
+                  <p className="text-sm text-gray-600">{location.location}</p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center text-gray-500 py-8">No intern location distribution data available.</div>
+          )}
         </CardContent>
       </Card>
 
@@ -231,46 +169,50 @@ const InternsKPI = () => {
           <CardTitle>Intern Details with Mentor Mapping</CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Designation</TableHead>
-                <TableHead>Project</TableHead>
-                <TableHead>Mentor</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Department</TableHead>
-                <TableHead>Learning Hrs</TableHead>
-                <TableHead>Productive Hrs</TableHead>
-                <TableHead>Feedback</TableHead>
-                <TableHead>Conversion Potential</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {internDetailsList.map((intern, index) => (
-                <TableRow key={index}>
-                  <TableCell className="font-medium">{intern.name}</TableCell>
-                  <TableCell>{intern.designation}</TableCell>
-                  <TableCell>{intern.project}</TableCell>
-                  <TableCell>{intern.mentor}</TableCell>
-                  <TableCell>
-                    <Badge className={getStatusColor(intern.status)}>
-                      {intern.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{intern.department}</TableCell>
-                  <TableCell>{intern.learningHours}</TableCell>
-                  <TableCell>{intern.productiveHours}</TableCell>
-                  <TableCell className="max-w-xs truncate">{intern.feedback}</TableCell>
-                  <TableCell>
-                    <Badge className={getPotentialColor(intern.conversionPotential)}>
-                      {intern.conversionPotential}
-                    </Badge>
-                  </TableCell>
+          {internsData && internsData.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Designation</TableHead>
+                  <TableHead>Project</TableHead>
+                  <TableHead>Mentor</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Department</TableHead>
+                  <TableHead>Learning Hrs</TableHead>
+                  <TableHead>Productive Hrs</TableHead>
+                  <TableHead>Feedback</TableHead>
+                  <TableHead>Conversion Potential</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {internsData.map((intern, index) => (
+                  <TableRow key={index}>
+                    <TableCell className="font-medium">{intern.name}</TableCell>
+                    <TableCell>{intern.designation}</TableCell>
+                    <TableCell>{intern.project}</TableCell>
+                    <TableCell>{intern.mentor}</TableCell>
+                    <TableCell>
+                      <Badge className={getStatusColor(intern.status)}>
+                        {intern.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{intern.department}</TableCell>
+                    <TableCell>{intern.learningHours}</TableCell>
+                    <TableCell>{intern.productiveHours}</TableCell>
+                    <TableCell className="max-w-xs truncate">{intern.feedback}</TableCell>
+                    <TableCell>
+                      <Badge className={getPotentialColor(intern.conversionPotential)}>
+                        {intern.conversionPotential}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <div className="text-center text-gray-500 py-8">No intern details data available.</div>
+          )}
         </CardContent>
       </Card>
     </div>

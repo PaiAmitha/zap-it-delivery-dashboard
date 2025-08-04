@@ -40,18 +40,30 @@ const ProjectDetails = () => {
     setError(null);
     try {
       const token = localStorage.getItem('token') || '';
-      const [projectData, milestonesData, risksData, teamMembersData, engineeringMetricsData] = await Promise.all([
+      const [projectData, milestonesData, risksData, teamMembersData, engineeringMetricsData, sprintsData] = await Promise.all([
         getProjectDetails(token, projectId),
         getProjectMilestones(token, projectId),
         getProjectRisks(token, projectId),
         getProjectTeamMembers(token, projectId),
-        getProjectEngineeringMetrics(token, projectId)
+        getProjectEngineeringMetrics(token, projectId),
+        // Always fetch sprints from backend
+        (projectId ? (await import('@/lib/api')).getProjectSprints(token, projectId) : { sprints: [] })
       ]);
-      setProject(projectData || null);
-      setMilestones((milestonesData as any)?.milestones || []);
-      setRisks((risksData as any)?.risks || []);
-      setTeamMembers((teamMembersData as any)?.teamMembers || []);
-      setEngineeringMetrics((engineeringMetricsData as any)?.engineeringMetrics || null);
+      // Merge all related data into the project object
+      const mergedProject = {
+        ...((projectData as any)?.project || {}),
+        milestones: (milestonesData as any)?.milestones || [],
+        risks: (risksData as any)?.risks || [],
+        teamMembers: (teamMembersData as any)?.teamMembers || [],
+        engineeringMetrics: (engineeringMetricsData as any)?.engineeringMetrics || {},
+        riskCount: ((risksData as any)?.risks || []).length,
+        sprints: (sprintsData as any)?.sprints || []
+      };
+      setProject(mergedProject);
+      setMilestones(mergedProject.milestones);
+      setRisks(mergedProject.risks);
+      setTeamMembers(mergedProject.teamMembers);
+      setEngineeringMetrics(mergedProject.engineeringMetrics);
     } catch (err: any) {
       setError(err?.message || 'Failed to load project details');
     } finally {
@@ -81,13 +93,14 @@ const ProjectDetails = () => {
   }
 
   const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'completed': return 'bg-green-100 text-green-800';
-      case 'on track': return 'bg-blue-100 text-blue-800';
-      case 'at risk': return 'bg-orange-100 text-orange-800';
-      case 'critical': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
+  if (!status) return 'bg-gray-100 text-gray-800';
+  switch (status.toLowerCase()) {
+    case 'completed': return 'bg-green-100 text-green-800';
+    case 'on track': return 'bg-blue-100 text-blue-800';
+    case 'at risk': return 'bg-orange-100 text-orange-800';
+    case 'critical': return 'bg-red-100 text-red-800';
+    default: return 'bg-gray-100 text-gray-800';
+  }
   };
 
   const getPriorityColor = (priority: string) => {
@@ -382,7 +395,15 @@ const ProjectDetails = () => {
         isOpen={isAddSprintModalOpen}
         onClose={(refresh?: boolean) => {
           setIsAddSprintModalOpen(false);
-          if (refresh) { fetchData(); }
+          if (refresh) {
+            fetchData();
+            // After adding a sprint, auto-select the latest sprint in the filter
+            setTimeout(() => {
+              if (project?.sprints?.length) {
+                setSelectedDeliveryFilter(`sprint-${project.sprints.length}`);
+              }
+            }, 500);
+          }
         }}
         projectId={project?.id}
         projectName={project?.name}

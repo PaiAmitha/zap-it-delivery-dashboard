@@ -21,7 +21,7 @@ import { ResourceData } from "@/types/resource";
 import { getResource } from "@/lib/api";
 
 const EmployeeProfile = () => {
-  const { employeeId, filterType, filterValue } = useParams();
+  const { employeeId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const [resource, setResource] = useState<ResourceData | null>(null);
@@ -34,6 +34,7 @@ const EmployeeProfile = () => {
       setError(null);
       try {
         const token = localStorage.getItem('token') || '';
+        // Always use employeeId for fetching resource details
         const data = await getResource(token, employeeId!);
         setResource(data as ResourceData || null);
       } catch (err: any) {

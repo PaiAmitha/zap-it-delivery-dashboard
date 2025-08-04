@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { getDashboard, DashboardData } from "@/lib/api";
+import { useResourceData } from "@/hooks/useResourceData";
+import { useState } from "react";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
 import { EnhancedKPICard } from "@/components/dashboard/EnhancedKPICard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,138 +17,53 @@ import { Filter, Users, UserCheck, UserX, Building, MapPin, Calendar } from "luc
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 
 
+
 const TotalResourcesKPI = () => {
-  const [selectedFilters, setSelectedFilters] = useState({
-    dateRange: "Last 6 months",
-    department: "All",
-    location: "All",
-    billableStatus: "All"
-  });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [allResourcesData, setAllResourcesData] = useState<any>(null);
-  const [allDepartmentData, setAllDepartmentData] = useState<any[]>([]);
-  const [allDesignationData, setAllDesignationData] = useState<any[]>([]);
-  const [allLocationData, setAllLocationData] = useState<any[]>([]);
-  const [monthlyGrowthData, setMonthlyGrowthData] = useState<any[]>([]);
+  // Use dashboard API for all analytics and KPIs
+  const {
+    loading,
+    error,
+    total_resources = 0,
+    active_resources = 0,
+    inactive_resources = 0,
+    monthly_growth_data = [],
+    departmentData = [],
+    designationData = [],
+    locationData = [],
+  } = useResourceData() || {};
 
-  // Backend-driven breakdown arrays (must be after state is defined)
-  // Backend-driven breakdown arrays (must be after state is defined)
-  const departmentDataBillable = allDepartmentData.filter((d: any) => d.billable > 0);
-  const departmentDataNonBillable = allDepartmentData.filter((d: any) => d.nonBillable > 0);
-  const designationDataBillable = allDesignationData.filter((d: any) => d.billable > 0);
-  const designationDataNonBillable = allDesignationData.filter((d: any) => d.nonBillable > 0);
-  const locationDataBillable = allLocationData.filter((d: any) => d.billable > 0);
-  const locationDataNonBillable = allLocationData.filter((d: any) => d.nonBillable > 0);
-
-  let departmentData = allDepartmentData;
-  let designationData = allDesignationData;
-  let locationData = allLocationData;
-  if (selectedFilters.billableStatus === "Billable") {
-    departmentData = departmentDataBillable;
-    designationData = designationDataBillable;
-    locationData = locationDataBillable;
-  } else if (selectedFilters.billableStatus === "Non-Billable") {
-    departmentData = departmentDataNonBillable;
-    designationData = designationDataNonBillable;
-    locationData = locationDataNonBillable;
-  }
-
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        // TODO: Replace with real auth token logic
-        const token = localStorage.getItem('token') || '';
-        const data = await getDashboard(token);
-        setAllResourcesData({
-          total: data.total_resources,
-          active: data.active_resources,
-          inactive: data.inactive_resources,
-          monthlyGrowth: data.monthly_growth,
-          billable: data.billable_resources_count,
-          nonBillable: data.non_billable_resources_count,
-        });
-        setAllDepartmentData(data.department_data || []);
-        setAllDesignationData(data.designation_data || []);
-        setAllLocationData(data.location_data || []);
-        setMonthlyGrowthData(data.monthly_growth_data || []);
-      } catch (err: any) {
-        setError(err?.message || 'Failed to load data');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, []);
-
-  if (loading) return <div className="p-8 text-center">Loading...</div>;
-  if (error) return <div className="p-8 text-center text-red-500">{error}</div>;
-
-  const getFilteredData = (data: any[], billableFilter: string) => {
-    if (billableFilter === "Billable") {
-      return data.map(item => ({
-        ...item,
-        count: item.billable,
-        percentage: ((item.billable / allResourcesData.total) * 100).toFixed(1)
-      }));
-    } else if (billableFilter === "Non-Billable") {
-      return data.map(item => ({
-        ...item,
-        count: item.nonBillable,
-        percentage: ((item.nonBillable / allResourcesData.total) * 100).toFixed(1)
-      }));
-    }
-    return data;
-  };
-
-  // Backend-driven breakdown arrays
-  // ...existing code...
-  if (selectedFilters.billableStatus === "Billable") {
-    departmentData = departmentDataBillable;
-    designationData = designationDataBillable;
-    locationData = locationDataBillable;
-  } else if (selectedFilters.billableStatus === "Non-Billable") {
-    departmentData = departmentDataNonBillable;
-    designationData = designationDataNonBillable;
-    locationData = locationDataNonBillable;
-  }
-
-  const getSummaryStats = (billableFilter: string) => {
-    if (billableFilter === "Billable") {
-      return {
-        total: allResourcesData?.billable || 0,
-        active: allResourcesData?.active || 0,
-        inactive: allResourcesData?.inactive || 0,
-        monthlyGrowth: allResourcesData?.monthlyGrowth || 0
-      };
-    }
-    if (billableFilter === "Non-Billable") {
-      return {
-        total: allResourcesData?.nonBillable || 0,
-        active: allResourcesData?.active || 0,
-        inactive: allResourcesData?.inactive || 0,
-        monthlyGrowth: allResourcesData?.monthlyGrowth || 0
-      };
-    }
-    return {
-      total: allResourcesData?.total || 0,
-      active: allResourcesData?.active || 0,
-      inactive: allResourcesData?.inactive || 0,
-      monthlyGrowth: allResourcesData?.monthlyGrowth || 0
-    };
-  };
-
-  const summaryStats = getSummaryStats(selectedFilters.billableStatus);
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D', '#FFC658'];
 
-  const handleFilterChange = (filterType: string, value: string) => {
-    setSelectedFilters(prev => ({
-      ...prev,
-      [filterType]: value
-    }));
+  // Filtering logic (stub, can be expanded)
+  const [selectedFilters, setSelectedFilters] = useState({ billableStatus: "All" });
+  const handleFilterChange = (key: string, value: string) => {
+    setSelectedFilters((prev) => ({ ...prev, [key]: value }));
   };
+
+  // Summary stats
+  const summaryStats = {
+    total: total_resources,
+    active: active_resources,
+    inactive: inactive_resources,
+    monthlyGrowth: monthly_growth_data.length > 0 ? monthly_growth_data[monthly_growth_data.length-1].count : 0
+  };
+
+  // Defensive fallback for percentage calculation
+  const monthlyGrowthData = monthly_growth_data || [];
+  const totalDept = departmentData.reduce((sum, d) => sum + (d.count || 0), 0);
+  const departmentTableData = departmentData.map(d => ({
+    ...d,
+    percentage: d.percentage !== undefined ? d.percentage : totalDept ? Math.round((d.count / totalDept) * 100) : 0
+  }));
+
+  const totalDesig = designationData.reduce((sum, d) => sum + (d.count || 0), 0);
+  const designationTableData = designationData.map(d => ({
+    ...d,
+    percentage: d.percentage !== undefined ? d.percentage : totalDesig ? Math.round((d.count / totalDesig) * 100) : 0
+  }));
+
+  if (loading) return <div className="p-6">Loading resource analytics...</div>;
+  if (error) return <div className="p-6 text-red-500">{error}</div>;
 
   return (
     <div className="min-h-screen bg-slate-50/50">
@@ -170,49 +85,49 @@ const TotalResourcesKPI = () => {
               <SelectItem value="Non-Billable">Non-Billable</SelectItem>
             </SelectContent>
           </Select>
-      </div>
+        </div>
 
-      {/* Enhanced Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-        <EnhancedKPICard
-          title={selectedFilters.billableStatus === "All" ? "Total Resources" : 
-                 selectedFilters.billableStatus === "Billable" ? "Billable Resources" : 
-                 "Non-Billable Resources"}
-          value={summaryStats.total}
-          subtitle="Active across all projects"
-          icon={Users}
-          bgColor="bg-blue-50"
-          iconBgColor="bg-blue-500"
-          textColor="text-blue-700"
-        />
-        <EnhancedKPICard
-          title="Active Resources"
-          value={summaryStats.active}
-          subtitle="Currently engaged"
-          icon={UserCheck}
-          bgColor="bg-emerald-50"
-          iconBgColor="bg-emerald-500"
-          textColor="text-emerald-700"
-        />
-        <EnhancedKPICard
-          title="Inactive Resources"
-          value={summaryStats.inactive}
-          subtitle="Not currently engaged"
-          icon={UserX}
-          bgColor="bg-red-50"
-          iconBgColor="bg-red-500"
-          textColor="text-red-700"
-        />
-        <EnhancedKPICard
-          title="Monthly Growth"
-          value={`+${summaryStats.monthlyGrowth}%`}
-          subtitle="Resource expansion"
-          icon={Calendar}
-          bgColor="bg-purple-50"
-          iconBgColor="bg-purple-500"
-          textColor="text-purple-700"
-          trend={{ value: `+${summaryStats.monthlyGrowth}%`, isPositive: true }}
-        />
+        {/* Enhanced Summary Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+          <EnhancedKPICard
+            title={selectedFilters.billableStatus === "All" ? "Total Resources" : 
+                   selectedFilters.billableStatus === "Billable" ? "Billable Resources" : 
+                   "Non-Billable Resources"}
+            value={summaryStats.total}
+            subtitle="Active across all projects"
+            icon={Users}
+            bgColor="bg-blue-50"
+            iconBgColor="bg-blue-500"
+            textColor="text-blue-700"
+          />
+          <EnhancedKPICard
+            title="Active Resources"
+            value={summaryStats.active}
+            subtitle="Currently engaged"
+            icon={UserCheck}
+            bgColor="bg-emerald-50"
+            iconBgColor="bg-emerald-500"
+            textColor="text-emerald-700"
+          />
+          <EnhancedKPICard
+            title="Inactive Resources"
+            value={summaryStats.inactive}
+            subtitle="Not currently engaged"
+            icon={UserX}
+            bgColor="bg-red-50"
+            iconBgColor="bg-red-500"
+            textColor="text-red-700"
+          />
+          <EnhancedKPICard
+            title="Monthly Growth"
+            value={`+${summaryStats.monthlyGrowth}%`}
+            subtitle="Resource expansion"
+            icon={Calendar}
+            bgColor="bg-purple-50"
+            iconBgColor="bg-purple-500"
+            textColor="text-purple-700"
+            trend={{ value: `+${summaryStats.monthlyGrowth}%`, isPositive: true }}
+          />
         </div>
 
         {/* Charts Section */}
@@ -230,7 +145,8 @@ const TotalResourcesKPI = () => {
                 )}
               </CardTitle>
             </CardHeader>
-            <CardContent>
+          <CardContent>
+            {departmentData.length > 0 ? (
               <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
                   <Pie
@@ -250,7 +166,10 @@ const TotalResourcesKPI = () => {
                   <Tooltip />
                 </PieChart>
               </ResponsiveContainer>
-            </CardContent>
+            ) : (
+              <div className="text-center text-gray-500 py-8">No department distribution data available.</div>
+            )}
+          </CardContent>
           </Card>
 
           {/* Location Distribution */}
@@ -266,7 +185,8 @@ const TotalResourcesKPI = () => {
                 )}
               </CardTitle>
             </CardHeader>
-            <CardContent>
+          <CardContent>
+            {locationData.length > 0 ? (
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={locationData}>
                   <CartesianGrid strokeDasharray="3 3" />
@@ -276,7 +196,10 @@ const TotalResourcesKPI = () => {
                   <Bar dataKey="count" fill="#8884d8" />
                 </BarChart>
               </ResponsiveContainer>
-            </CardContent>
+            ) : (
+              <div className="text-center text-gray-500 py-8">No location distribution data available.</div>
+            )}
+          </CardContent>
           </Card>
         </div>
 
@@ -289,15 +212,19 @@ const TotalResourcesKPI = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={monthlyGrowthData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip />
-                <Line type="monotone" dataKey="count" stroke="#8884d8" strokeWidth={2} />
-              </LineChart>
-            </ResponsiveContainer>
+            {monthlyGrowthData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={monthlyGrowthData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="count" stroke="#8884d8" strokeWidth={2} />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="text-center text-gray-500 py-8">No monthly growth trend data available.</div>
+            )}
           </CardContent>
         </Card>
 
@@ -316,26 +243,30 @@ const TotalResourcesKPI = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Department</TableHead>
-                    <TableHead>Count</TableHead>
-                    <TableHead>Percentage</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {departmentData.map((dept) => (
-                    <TableRow key={dept.name}>
-                      <TableCell className="font-medium">{dept.name}</TableCell>
-                      <TableCell>{dept.count}</TableCell>
-                      <TableCell>
-                        <Badge variant="secondary">{dept.percentage}%</Badge>
-                      </TableCell>
+              {departmentTableData.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Department</TableHead>
+                      <TableHead>Count</TableHead>
+                      <TableHead>Percentage</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {departmentTableData.map((dept) => (
+                      <TableRow key={dept.name}>
+                        <TableCell className="font-medium">{dept.name}</TableCell>
+                        <TableCell>{dept.count}</TableCell>
+                        <TableCell>
+                          <Badge variant="secondary">{dept.percentage}%</Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="text-center text-gray-500 py-8">No department breakdown data available.</div>
+              )}
             </CardContent>
           </Card>
 
@@ -352,32 +283,34 @@ const TotalResourcesKPI = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Designation</TableHead>
-                    <TableHead>Count</TableHead>
-                    <TableHead>Percentage</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {designationData.map((designation) => (
-                    <TableRow key={designation.name}>
-                      <TableCell className="font-medium">{designation.name}</TableCell>
-                      <TableCell>{designation.count}</TableCell>
-                      <TableCell>
-                        <Badge variant="secondary">{designation.percentage}%</Badge>
-                      </TableCell>
+              {designationTableData.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Designation</TableHead>
+                      <TableHead>Count</TableHead>
+                      <TableHead>Percentage</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {designationTableData.map((designation) => (
+                      <TableRow key={designation.name}>
+                        <TableCell className="font-medium">{designation.name}</TableCell>
+                        <TableCell>{designation.count}</TableCell>
+                        <TableCell>
+                          <Badge variant="secondary">{designation.percentage}%</Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="text-center text-gray-500 py-8">No designation breakdown data available.</div>
+              )}
             </CardContent>
           </Card>
         </div>
       </div>
-
-
     </div>
   );
 };

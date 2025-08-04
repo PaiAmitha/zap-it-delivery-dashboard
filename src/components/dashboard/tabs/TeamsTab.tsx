@@ -15,11 +15,24 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 
 
 export const TeamsTab = ({ teams, teamMembers }: { teams: any, teamMembers: any[] }) => {
-  // Compute team composition metrics from teamMembers
-  const totalMembers = teamMembers?.length || 0;
-  const activeMembers = teamMembers?.filter(m => (m.status || '').toLowerCase() === 'active').length || 0;
+  // Map backend resource fields to UI fields
+  const mappedMembers = (teamMembers || []).map(m => ({
+    id: m.id,
+    name: m.full_name || m.name || m.employee_id,
+    role: m.designation || m.role || 'Member',
+    experience: m.experience,
+    allocation: m.engagement_detail || m.allocation || '',
+    status: m.status || 'Active',
+    performance: m.performance_feedback || m.performance || 'Good',
+    department: m.department,
+    location: m.location,
+    email: m.email,
+  }));
+
+  const totalMembers = mappedMembers.length;
+  const activeMembers = mappedMembers.filter(m => (m.status || '').toLowerCase() === 'active').length;
   const avgExperience = totalMembers > 0
-    ? (teamMembers.reduce((sum, m) => sum + (parseFloat(m.experience) || 0), 0) / totalMembers).toFixed(1)
+    ? (mappedMembers.reduce((sum, m) => sum + (parseFloat(m.experience) || 0), 0) / totalMembers).toFixed(1)
     : '-';
   const teamComposition = {
     totalMembers,
@@ -27,16 +40,16 @@ export const TeamsTab = ({ teams, teamMembers }: { teams: any, teamMembers: any[
     averageExperience: avgExperience
   };
 
-  // Compute role distribution from teamMembers
+  // Compute role distribution from mappedMembers
   let roleDistribution: { role: string; count: number; percentage: number; color: string }[] = [];
-  if (teamMembers && teamMembers.length > 0) {
+  if (mappedMembers.length > 0) {
     const roleCounts: Record<string, number> = {};
-    teamMembers.forEach(member => {
+    mappedMembers.forEach(member => {
       if (member.role) {
         roleCounts[member.role] = (roleCounts[member.role] || 0) + 1;
       }
     });
-    const total = teamMembers.length;
+    const total = mappedMembers.length;
     const colors = [
       "bg-blue-500", "bg-green-500", "bg-purple-500", "bg-orange-500", "bg-pink-500", "bg-teal-500", "bg-yellow-500"
     ];
@@ -125,7 +138,7 @@ export const TeamsTab = ({ teams, teamMembers }: { teams: any, teamMembers: any[
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {teamMembers && teamMembers.map((member) => (
+                  {mappedMembers.map((member) => (
                     <TableRow key={member.id}>
                       <TableCell className="font-medium">
                         <UserHoverCard
@@ -133,7 +146,7 @@ export const TeamsTab = ({ teams, teamMembers }: { teams: any, teamMembers: any[
                           role={member.role}
                           department={member.department}
                           location={member.location}
-                          email={`${member.name?.toLowerCase().replace(/\s+/g, '.')}@company.com`}
+                          email={member.email}
                         >
                           <span className="cursor-pointer hover:text-blue-600 transition-colors">
                             {member.name}

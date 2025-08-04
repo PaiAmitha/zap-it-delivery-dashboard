@@ -40,7 +40,7 @@ const ResourceView = () => {
     }
     return years;
   };
-const { id: resourceId } = useParams();
+const { id: employeeId } = useParams();
   const { toast } = useToast();
   const [resourceData, setResourceData] = useState<ResourceData | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -58,7 +58,7 @@ const { id: resourceId } = useParams();
       setError(null);
       try {
         const token = localStorage.getItem('token') || '';
-        const response = await getResource(token, resourceId!) as ResourceData | { resource?: ResourceData, resourceDetails?: ResourceData };
+        const response = await getResource(token, employeeId!) as ResourceData | { resource?: ResourceData, resourceDetails?: ResourceData };
         let data: ResourceData | undefined = undefined;
         if (response && (response as any).resource) {
           data = (response as any).resource as ResourceData;
@@ -79,7 +79,7 @@ const { id: resourceId } = useParams();
             let engagements: any[] = [];
             if (Array.isArray(upcoming)) {
               // If API returns array of engagements, filter by resourceId
-              engagements = upcoming.filter((e: any) => e.resourceId === data.resourceId);
+              engagements = upcoming.filter((e: any) => e.employeeId === data.employeeId);
             } else if (
               upcoming &&
               typeof upcoming === 'object' &&
@@ -87,7 +87,7 @@ const { id: resourceId } = useParams();
               Array.isArray((upcoming as any).engagements)
             ) {
               // If API returns { engagements: [...] }
-              engagements = (upcoming as any).engagements.filter((e: any) => e.resourceId === data.resourceId);
+              engagements = (upcoming as any).engagements.filter((e: any) => e.employeeId === data.employeeId);
             }
             data.upcomingEngagements = engagements;
           } catch (e) {
@@ -108,7 +108,7 @@ const { id: resourceId } = useParams();
       setProjectsError(null);
       try {
         const token = localStorage.getItem('token') || '';
-        const result = await getProjects(token, { resourceId }) as { projects?: any[] } | any[];
+        const result = await getProjects(token, { employeeId }) as { projects?: any[] } | any[];
         if (Array.isArray(result)) {
           setProjects(result);
         } else if (result && Array.isArray(result.projects)) {
@@ -122,11 +122,11 @@ const { id: resourceId } = useParams();
         setProjectsLoading(false);
       }
     };
-    if (resourceId) {
+    if (employeeId) {
       fetchResource();
       fetchProjects();
     }
-  }, [resourceId]);
+  }, [employeeId]);
 
   const getInitials = (name: string = '') => name.split(' ').map(n => n[0]).join('').toUpperCase();
   const handleEditResource = () => setIsEditing(true);
@@ -255,7 +255,7 @@ const { id: resourceId } = useParams();
             <CardContent className="space-y-3 px-2">
               <div className="flex justify-between items-center text-sm">
                 <span className="font-medium">Resource ID:</span>
-                <span className="text-gray-700">{resourceData?.resourceId || '-'}</span>
+                <span className="text-gray-700">{resourceData?.employeeId ?? (resourceData?.resourceId || '-')}</span>
               </div>
               <div className="flex justify-between items-center text-sm">
                 <span className="font-medium">Joining Date:</span>

@@ -145,7 +145,7 @@ const Dashboard = () => {
                                 <div className="text-right">
                                   <p className="text-xs text-gray-500 mb-1">On-Time</p>
                                   <p className="text-lg font-bold text-gray-900">
-                                    {project.onTimePercentage ?? '-'}%
+                                    {typeof project.onTimePercentage === 'number' ? project.onTimePercentage : 0}%
                                   </p>
                                 </div>
                               </div>
@@ -155,19 +155,19 @@ const Dashboard = () => {
                                   {velocityKPI && (
                                     <div className="text-center">
                                       <p className="text-xs text-gray-500">Velocity</p>
-                                      <p className="text-lg font-bold text-blue-700">{velocityKPI.value ?? '-'}</p>
+                                      <p className="text-lg font-bold text-blue-700">{typeof velocityKPI?.value === 'number' ? velocityKPI.value : 0}</p>
                                     </div>
                                   )}
                                   {qualityKPI && (
                                     <div className="text-center">
                                       <p className="text-xs text-gray-500">Quality</p>
-                                      <p className="text-lg font-bold text-green-700">{qualityKPI.value ?? '-'}</p>
+                                      <p className="text-lg font-bold text-green-700">{typeof qualityKPI?.value === 'number' ? qualityKPI.value : 0}</p>
                                     </div>
                                   )}
                                   {!velocityKPI && !qualityKPI && firstKPI && (
                                     <div className="text-center">
                                       <p className="text-xs text-gray-500">{firstKPI.title || firstKPI.name}</p>
-                                      <p className="text-lg font-bold text-blue-700">{firstKPI.value ?? '-'}</p>
+                                      <p className="text-lg font-bold text-blue-700">{typeof firstKPI?.value === 'number' ? firstKPI.value : 0}</p>
                                     </div>
                                   )}
                                 </div>
@@ -178,13 +178,13 @@ const Dashboard = () => {
                                   <p className="text-xs text-gray-500">Progress</p>
                                   <p className="text-xs font-medium text-gray-700">{project.progress}%</p>
                                 </div>
-                                <Progress value={project.progress} className="h-2 rounded-full bg-gray-200" />
+                                <Progress value={typeof project.progress === 'number' ? project.progress : 0} className="h-2 rounded-full bg-gray-200" />
                               </div>
                               {/* Team Size and Actions */}
                               <div className="flex items-center justify-between pt-2">
                                 <div className="flex items-center gap-2 text-gray-600">
                                   <Users className="h-4 w-4" />
-                                  <span className="text-sm">{project.teamSize} members</span>
+                                  <span className="text-sm">{typeof project.teamSize === 'number' ? project.teamSize : 0} members</span>
                                 </div>
                                 <Button 
                                   variant="outline" 

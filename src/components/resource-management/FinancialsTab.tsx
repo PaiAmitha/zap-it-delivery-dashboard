@@ -1,7 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FinancialSummaryCard } from "@/components/dashboard/FinancialSummaryCard";
 import { useEffect, useState } from "react";
-import { getFinancialDashboard } from "@/lib/api";
 
 export const FinancialsTab = () => {
   const [finance, setFinance] = useState<any>(null);
@@ -14,8 +13,12 @@ export const FinancialsTab = () => {
       setError(null);
       try {
         const token = localStorage.getItem('token') || '';
-        const result = await getFinancialDashboard(token);
-        setFinance((result as any).financialDashboard || {});
+        const res = await fetch("/api/resources/financial-overview", {
+          method: "GET",
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        const result = await res.json();
+        setFinance(result || {});
       } catch (err: any) {
         setError(err?.message || 'Failed to fetch financials');
       } finally {

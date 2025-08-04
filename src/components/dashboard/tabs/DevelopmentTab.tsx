@@ -4,7 +4,8 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { Code, GitBranch, Bug, Zap } from "lucide-react";
 
 export const DevelopmentTab = ({ engineeringMetrics }: { engineeringMetrics: any }) => {
-  const developmentMetrics = engineeringMetrics?.development || {};
+  // Ensure metrics are mapped from both possible keys
+  const metrics = engineeringMetrics?.development || engineeringMetrics?.developmentMetrics || {};
   const velocityData = engineeringMetrics?.velocityData || [];
   const codeQualityTrend = engineeringMetrics?.codeQualityTrend || [];
   return (
@@ -17,8 +18,8 @@ export const DevelopmentTab = ({ engineeringMetrics }: { engineeringMetrics: any
             <Code className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{developmentMetrics.codeCoverage}%</div>
-            <Progress value={developmentMetrics.codeCoverage} className="mt-2" />
+            <div className="text-2xl font-bold">{metrics.codeCoverage}%</div>
+            <Progress value={metrics.codeCoverage} className="mt-2" />
           </CardContent>
         </Card>
         <Card>
@@ -27,8 +28,8 @@ export const DevelopmentTab = ({ engineeringMetrics }: { engineeringMetrics: any
             <GitBranch className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{developmentMetrics.codeQuality}%</div>
-            <Progress value={developmentMetrics.codeQuality} className="mt-2" />
+            <div className="text-2xl font-bold">{metrics.codeQuality}%</div>
+            <Progress value={metrics.codeQuality} className="mt-2" />
           </CardContent>
         </Card>
         <Card>
@@ -37,8 +38,8 @@ export const DevelopmentTab = ({ engineeringMetrics }: { engineeringMetrics: any
             <Zap className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{developmentMetrics.buildSuccess}%</div>
-            <Progress value={developmentMetrics.buildSuccess} className="mt-2" />
+            <div className="text-2xl font-bold">{metrics.buildSuccess}%</div>
+            <Progress value={metrics.buildSuccess} className="mt-2" />
           </CardContent>
         </Card>
         <Card>
@@ -47,7 +48,7 @@ export const DevelopmentTab = ({ engineeringMetrics }: { engineeringMetrics: any
             <Bug className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{developmentMetrics.leadTime}</div>
+            <div className="text-2xl font-bold">{metrics.leadTime}</div>
             <p className="text-xs text-muted-foreground">Average delivery time</p>
           </CardContent>
         </Card>
@@ -101,13 +102,13 @@ export const DevelopmentTab = ({ engineeringMetrics }: { engineeringMetrics: any
           <CardContent className="space-y-4">
             <div className="flex justify-between items-center">
               <span className="text-sm font-medium">Technical Debt</span>
-              <span className="text-sm text-muted-foreground">{developmentMetrics.technicalDebt}%</span>
+              <span className="text-sm text-muted-foreground">{metrics.technicalDebt}%</span>
             </div>
-            <Progress value={developmentMetrics.technicalDebt} className="h-2" />
+            <Progress value={metrics.technicalDebt} className="h-2" />
             
             <div className="flex justify-between items-center">
               <span className="text-sm font-medium">Deployment Frequency</span>
-              <span className="text-sm font-bold text-green-600">{developmentMetrics.deploymentFreq}</span>
+              <span className="text-sm font-bold text-green-600">{metrics.deploymentFreq}</span>
             </div>
             
             <div className="grid grid-cols-2 gap-4 mt-4">

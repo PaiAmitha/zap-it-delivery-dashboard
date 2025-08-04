@@ -116,7 +116,7 @@ const ProjectAllocation = () => {
                   </SelectTrigger>
                   <SelectContent>
                     {resources.map((resource) => (
-                      <SelectItem key={resource.resourceId} value={resource.resourceId}>
+                      <SelectItem key={resource.employeeId} value={resource.employeeId}>
                         {resource.fullName} - {resource.designation}
                       </SelectItem>
                     ))}

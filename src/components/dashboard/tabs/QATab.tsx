@@ -1,12 +1,11 @@
-
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
 import { TestTube, Bug, CheckCircle, AlertTriangle } from "lucide-react";
 
 export const QATab = ({ engineeringMetrics }: { engineeringMetrics: any }) => {
-  const qaMetrics = engineeringMetrics?.qa || {};
+  // Ensure metrics are mapped from both possible keys
+  const metrics = engineeringMetrics?.qa || engineeringMetrics?.qaMetrics || {};
   const defectTrend = engineeringMetrics?.defectTrend || [];
   const defectDistribution = engineeringMetrics?.defectDistribution || [];
   const testAutomationData = engineeringMetrics?.testAutomationData || [];
@@ -22,8 +21,8 @@ export const QATab = ({ engineeringMetrics }: { engineeringMetrics: any }) => {
             <TestTube className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{qaMetrics.testCoverage}%</div>
-            <Progress value={qaMetrics.testCoverage} className="mt-2" />
+            <div className="text-2xl font-bold">{metrics.testCoverage}%</div>
+            <Progress value={metrics.testCoverage} className="mt-2" />
           </CardContent>
         </Card>
         
@@ -33,8 +32,8 @@ export const QATab = ({ engineeringMetrics }: { engineeringMetrics: any }) => {
             <CheckCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{qaMetrics.passRate}%</div>
-            <Progress value={qaMetrics.passRate} className="mt-2" />
+            <div className="text-2xl font-bold">{metrics.passRate}%</div>
+            <Progress value={metrics.passRate} className="mt-2" />
           </CardContent>
         </Card>
         
@@ -44,8 +43,8 @@ export const QATab = ({ engineeringMetrics }: { engineeringMetrics: any }) => {
             <Bug className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{qaMetrics.automationRate}%</div>
-            <Progress value={qaMetrics.automationRate} className="mt-2" />
+            <div className="text-2xl font-bold">{metrics.automationRate}%</div>
+            <Progress value={metrics.automationRate} className="mt-2" />
           </CardContent>
         </Card>
         
@@ -55,7 +54,7 @@ export const QATab = ({ engineeringMetrics }: { engineeringMetrics: any }) => {
             <AlertTriangle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{qaMetrics.defectDensity}</div>
+            <div className="text-2xl font-bold">{metrics.defectDensity}</div>
             <p className="text-xs text-muted-foreground">Per 1000 lines of code</p>
           </CardContent>
         </Card>

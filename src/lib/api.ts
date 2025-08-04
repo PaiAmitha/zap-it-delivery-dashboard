@@ -1,3 +1,10 @@
+// Allocate resources to a project
+export async function allocateProject(token: string, allocationData: any) {
+  return apiFetch('/api/resources/allocate-project', {
+    method: 'POST',
+    body: JSON.stringify(allocationData),
+  }, token);
+}
 // Fetch project milestones
 export async function getProjectMilestones(token: string, projectId: string | number) {
   return apiFetch(`/projects/${projectId}/milestones`, {}, token);
@@ -60,9 +67,8 @@ export async function deleteEscalation(token: string, escalationId: string) {
     method: 'DELETE',
   }, token);
 }
-export async function getResignations(token: string, params = {}) {
-  const query = new URLSearchParams(params as any).toString();
-  return apiFetch(`/resignations?${query}`, {}, token);
+export async function getResignations(token: string) {
+  return apiFetch('/api/resignations', {}, token);
 }
 
 export async function getInterns(token: string, params = {}) {
@@ -210,33 +216,33 @@ export async function login(email: string, password: string) {
 // Resource CRUD
 
 
-export async function getResource(token: string, resourceId: string) {
-  return apiFetch(`/resources/${resourceId}`, {}, token);
+export async function getResource(token: string, employeeId: string) {
+  return apiFetch(`/api/resources/${employeeId}`, {}, token);
 }
 
 export async function createResource(token: string, resourceData: any) {
-  return apiFetch('/resources', {
+  return apiFetch('/api/resources', {
     method: 'POST',
     body: JSON.stringify(resourceData),
   }, token);
 }
 
 export async function updateResource(token: string, resourceId: string, resourceData: any) {
-  return apiFetch(`/resources/${resourceId}`, {
+  return apiFetch(`/api/resources/${resourceId}`, {
     method: 'PUT',
     body: JSON.stringify(resourceData),
   }, token);
 }
 
 export async function deleteResource(token: string, resourceId: string) {
-  return apiFetch(`/resources/${resourceId}`, {
+  return apiFetch(`/api/resources/${resourceId}`, {
     method: 'DELETE',
   }, token);
 }
 
-export async function getResources(token: string, params = {}) {
-  const query = new URLSearchParams(params as any).toString();
-  return apiFetch(`/resources?${query}`, {}, token);
+export async function getResources(token: string, params: Record<string, any> = {}) {
+  const query = new URLSearchParams(params).toString();
+  return apiFetch(`/api/resources?${query}`, {}, token);
 }
 
 
@@ -249,6 +255,11 @@ export async function getProjects(token: string, params = {}) {
 export async function getEscalations(token: string, params = {}) {
   const query = new URLSearchParams(params as any).toString();
   return apiFetch(`/escalations?${query}`, {}, token);
+}
+
+// Fetch project sprints
+export async function getProjectSprints(token: string, projectId: string | number) {
+  return apiFetch(`/projects/${projectId}/sprints`, {}, token);
 }
 
 /**
@@ -284,20 +295,25 @@ export async function createEmployee(token: string, employeeData: any) {
 
 // Upcoming Releases
 export async function getUpcomingReleases(token: string) {
-  return apiFetch('/upcoming-releases', {}, token);
+  return apiFetch('/api/resources/upcoming-releases', {}, token);
 }
 
 // Interns
 export async function getInternResources(token: string) {
-  return apiFetch('/interns', {}, token);
+  return apiFetch('/api/resources/interns', {}, token);
 }
 
 // Financial Dashboard
 export async function getFinancialDashboard(token: string) {
-  return apiFetch('/resources/financial-overview', {}, token);
+  return apiFetch('/api/resources/financial-overview', {}, token);
 }
 
 // Resource Details
-export async function getResourceDetails(token: string, resourceId: string | number) {
-  return apiFetch(`/resources/${resourceId}`, {}, token);
+export async function getResourceDetails(token: string, employeeId: string | number) {
+  return apiFetch(`/api/resources/${employeeId}`, {}, token);
+}
+export async function deleteIntern(token: string, internId: number) {
+  return apiFetch(`/api/interns/${internId}`, {
+    method: 'DELETE',
+  }, token);
 }

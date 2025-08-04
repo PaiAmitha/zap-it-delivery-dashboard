@@ -40,16 +40,29 @@ export const ResignationsTab = () => {
     }
   };
 
-  const handleViewDetails = (employeeId: string) => {
-    navigate(`/resource-details/${employeeId}`);
+  const handleViewDetails = (resourceId: string) => {
+    navigate(`/resource-details/${resourceId}`);
   };
 
   if (loading) {
-    return <div>Loading...</div>;
+    return (
+      <div className="flex items-center justify-center h-32 w-full">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-slate-600 text-sm">Loading resignations...</p>
+        </div>
+      </div>
+    );
   }
 
   if (error) {
-    return <div>Error: {error}</div>;
+    return (
+      <div className="flex items-center justify-center h-32 w-full">
+        <div className="text-center">
+          <p className="text-red-600 text-sm">{error}</p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -80,24 +93,37 @@ export const ResignationsTab = () => {
                 </TableRow>
               ) : (
                 resignations.map((resignation) => (
-                  <TableRow key={resignation.resourceId}>
-                    <TableCell>{resignation.resourceId}</TableCell>
-                    <TableCell className="font-medium">{resignation.fullName}</TableCell>
-                    <TableCell>{resignation.last_working_day}</TableCell>
-                    <TableCell>{resignation.primary_skill}</TableCell>
-                    <TableCell>{resignation.client}</TableCell>
-                    <TableCell>{resignation.project_name}</TableCell>
+                  <TableRow key={resignation.employeeId || resignation.id}>
+                    <TableCell>{resignation.employeeId || resignation.id || '-'}</TableCell>
+                    <TableCell className="font-medium">{resignation.fullName || '-'}</TableCell>
+                    <TableCell>{resignation.last_working_day || '-'}</TableCell>
+                    <TableCell>{(() => {
+                      let primarySkills = resignation.primarySkills;
+                      const cleanSkill = (s: string) => s.replace(/[{}\[\]"\\]+/g, '').trim();
+                      if (Array.isArray(primarySkills)) {
+                        const cleaned = primarySkills.map(s => cleanSkill(s)).filter(s => !!s);
+                        return cleaned.length ? cleaned.join(', ') : '—';
+                      }
+                      if (typeof primarySkills === 'string') {
+                        primarySkills = primarySkills.replace(/[{}\[\]"\\]+/g, '').split(',').map(s => cleanSkill(s)).filter(s => !!s);
+                        return primarySkills.length ? primarySkills.join(', ') : '—';
+                      }
+                      return '—';
+                    })()}
+                    </TableCell>
+                    <TableCell>{resignation.client || '-'}</TableCell>
+                    <TableCell>{resignation.project_name || '-'}</TableCell>
                     <TableCell>
-                      <Badge className={getReplacementColor(resignation.replacement_plan)}>
-                        {resignation.replacement_plan}
+                      <Badge className={getReplacementColor(resignation.replacement_plan || '')}>
+                        {resignation.replacement_plan || 'N/A'}
                       </Badge>
                     </TableCell>
-                    <TableCell>{resignation.feedback}</TableCell>
+                    <TableCell>{resignation.feedback || '-'}</TableCell>
                     <TableCell>
                       <Button 
                         variant="outline" 
                         size="sm"
-                        onClick={() => handleViewDetails(resignation.resourceId)}
+                        onClick={() => handleViewDetails(resignation.resourceId || resignation.id)}
                       >
                         View Details
                       </Button>

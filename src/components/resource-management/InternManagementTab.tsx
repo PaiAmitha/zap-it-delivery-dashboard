@@ -41,6 +41,23 @@ export const InternManagementTab = () => {
     window.location.href = `/resource-details/${employeeId}`;
   };
 
+  const handleDeleteIntern = async (internId: number) => {
+    if (!window.confirm('Are you sure you want to delete this intern?')) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const token = localStorage.getItem('token') || '';
+      await import("@/lib/api").then(api => api.deleteIntern(token, internId));
+      // Refetch interns after delete
+      const result = await getInternResources(token);
+      setInterns((result as any).interns || []);
+    } catch (err: any) {
+      setError(err?.message || 'Failed to delete intern');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -82,13 +99,20 @@ export const InternManagementTab = () => {
                     <TableCell>{intern.stipend}</TableCell>
                     <TableCell>{intern.internshipStartDate}</TableCell>
                     <TableCell>{intern.internshipEndDate}</TableCell>
-                    <TableCell>
+                    <TableCell className="flex gap-2">
                       <Button 
                         variant="outline" 
                         size="sm"
                         onClick={() => handleViewDetails(intern.employeeId)}
                       >
                         View Details
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => handleDeleteIntern(intern.internId || intern.id)}
+                      >
+                        Delete
                       </Button>
                     </TableCell>
                   </TableRow>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { getDashboard } from "@/lib/api";
+import { apiFetch } from "@/lib/api";
 
 export const useResourceData = () => {
   const [data, setData] = useState<any>(null);
@@ -12,9 +13,12 @@ export const useResourceData = () => {
       setError(null);
       try {
         const token = localStorage.getItem('token') || '';
+        console.log('[useResourceData] Fetching /dashboard endpoint...');
         const dashboard = await getDashboard(token);
+        console.log('[useResourceData] /dashboard response:', dashboard);
         setData(dashboard);
       } catch (err: any) {
+        console.error('[useResourceData] Error fetching /dashboard:', err);
         setError(err?.message || 'Failed to fetch resource analytics');
       } finally {
         setLoading(false);
@@ -66,7 +70,6 @@ export const useResourceData = () => {
       { month: "Jun 2025", totalCost: 965000, billableCost: 605000, nonBillableCost: 335000, internCost: 25000, nonBillablePercentage: 34.7 },
     ],
     ytdTotals: {
-      total: 5450000,
       billable: 3425000,
       nonBillable: 1855000,
       intern: 170000,

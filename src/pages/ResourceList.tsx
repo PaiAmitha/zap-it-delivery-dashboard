@@ -16,6 +16,8 @@ const ResourceList = () => {
   const { filterType, filterValue } = useParams();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [refreshFlag, setRefreshFlag] = useState(0);
   const [resources, setResources] = useState<ResourceData[]>([]);
   const [filteredResources, setFilteredResources] = useState<ResourceData[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -42,7 +44,7 @@ const ResourceList = () => {
       setShowMobileView(isMobile);
     };
     fetchResources();
-  }, [isMobile]);
+  }, [isMobile, refreshFlag]);
 
   useEffect(() => {
     let filtered = resources;
@@ -60,7 +62,7 @@ const ResourceList = () => {
     if (searchTerm) {
       filtered = filtered.filter(res =>
         (res.fullName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (res.resourceId ? String(res.resourceId).toLowerCase().includes(searchTerm.toLowerCase()) : false)
+        (res.employeeId ? String(res.employeeId).toLowerCase().includes(searchTerm.toLowerCase()) : false)
       );
     }
     if (departmentFilter !== "all") {
@@ -94,7 +96,11 @@ const ResourceList = () => {
   };
 
   const handleViewDetails = (resource: ResourceData) => {
-    navigate(`/resource-list/${filterType || ''}/${filterValue || ''}/${resource.resourceId}`);
+    navigate(`/resource-list/${filterType || ''}/${filterValue || ''}/${resource.employeeId ?? resource.resourceId}`);
+  };
+
+  const handleEditResource = (resource: ResourceData) => {
+    navigate("/add-resource", { state: { resource, mode: "edit" } });
   };
 
   const departments = [...new Set(resources.map(res => res.department))];
@@ -106,25 +112,55 @@ const ResourceList = () => {
         <div className="flex items-start justify-between mb-3">
           <div className="flex-1 min-w-0">
             <h3 className="font-semibold text-lg text-gray-900 truncate">{resource.fullName}</h3>
-            <p className="text-sm text-gray-500 truncate">{resource.resourceId}</p>
+            <p className="text-sm text-gray-500 truncate">{resource.employeeId ?? resource.resourceId}</p>
             <p className="text-sm text-gray-600 truncate">{resource.designation}</p>
           </div>
-          {/* Add status/billable badge if needed */}
         </div>
-        {/* Add more fields as needed */}
-        <Button 
-          size="sm" 
-          variant="outline"
-          onClick={() => handleViewDetails(resource)}
-          className="w-full flex items-center justify-center gap-2"
-        >
-          <Eye className="h-4 w-4" />
-          View Details
-        </Button>
+        <div className="flex flex-col gap-2">
+          <Button 
+            size="sm" 
+            variant="outline"
+            onClick={() => handleViewDetails(resource)}
+            className="w-full flex items-center justify-center gap-2"
+          >
+            <Eye className="h-4 w-4" />
+            View Details
+          </Button>
+          <Button
+            size="sm"
+            variant="default"
+            className="w-full flex items-center justify-center gap-2"
+            onClick={() => handleEditResource(resource)}
+          >
+            Edit
+          </Button>
+          <Button
+            size="sm"
+            variant="destructive"
+            className="w-full flex items-center justify-center gap-2"
+            disabled={deletingId === (resource.employeeId ?? resource.resourceId)}
+            onClick={async () => {
+              if (!window.confirm(`Delete resource ${resource.fullName}? This cannot be undone.`)) return;
+              setDeletingId(resource.employeeId ?? resource.resourceId);
+              try {
+                const token = localStorage.getItem('token') || '';
+                await import('@/lib/api').then(api => api.deleteResource(token, resource.employeeId ?? resource.resourceId));
+                setRefreshFlag(f => f + 1);
+              } catch (err: any) {
+                setError(err?.message || 'Failed to delete resource');
+              } finally {
+                setDeletingId(null);
+              }
+            }}
+          >
+            {deletingId === (resource.employeeId ?? resource.resourceId) ? 'Deleting...' : 'Delete'}
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );
 
+  // Main render block
   return (
     <div className="space-y-4 sm:space-y-6">
       {loading && (
@@ -141,136 +177,125 @@ const ResourceList = () => {
           </CardContent>
         </Card>
       )}
-      <div className="px-1 sm:px-0">
-        <BreadcrumbNavigation />
-      </div>
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-1 sm:px-0">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{getFilterDisplayName()}</h1>
-          <p className="text-sm sm:text-base text-gray-600">Showing {filteredResources.length} resources</p>
-        </div>
-      </div>
-      {/* Filters */}
-      <Card className="mx-1 sm:mx-0">
-        <CardHeader>
-          <CardTitle className="text-base sm:text-lg">Filters</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Search by name or ID..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
-              <SelectTrigger>
-                <SelectValue placeholder="Filter by Department" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Departments</SelectItem>
-                {departments.map(dept => (
-                  <SelectItem key={String(dept)} value={String(dept)}>{String(dept)}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {/* Status filter can be added if you have a status field */}
-          </div>
-        </CardContent>
-      </Card>
-      {/* Resource List */}
-      <div className="px-1 sm:px-0">
-        {showMobileView ? (
-          /* Mobile Card View */
-          <div className="space-y-4">
-            {filteredResources.map((resource) => (
-              <MobileResourceCard key={resource.resourceId} resource={resource} />
-            ))}
-          </div>
-        ) : (
-          /* Desktop Table View */
-          <Card>
-            <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="min-w-[200px]">Resource</TableHead>
-                      <TableHead>Designation</TableHead>
-                      <TableHead>Department</TableHead>
-                      <TableHead>Location</TableHead>
-                      <TableHead>Seniority</TableHead>
-                      <TableHead>Billable</TableHead>
-                      <TableHead>Monthly Cost</TableHead>
-                      <TableHead>Skills</TableHead>
-                      <TableHead className="text-center">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredResources.map((resource) => (
-                      <TableRow key={resource.resourceId}>
-                        <TableCell>
-                          <div>
-                            <p className="font-medium">{resource.fullName}</p>
-                            <p className="text-sm text-gray-500">{resource.resourceId}</p>
-                          </div>
-                        </TableCell>
-                        <TableCell>{resource.designation}</TableCell>
-                        <TableCell>{resource.department}</TableCell>
-                        <TableCell>{resource.location}</TableCell>
-                        <TableCell>{resource.seniorityLevel}</TableCell>
-                        <TableCell>
-                          <Badge variant={resource.billableStatus ? 'default' : 'secondary'}>
-                            {resource.billableStatus ? 'Billable' : 'Non-Billable'}
+      {!showMobileView ? (
+        <Card className="mb-4">
+          <CardHeader>
+            <CardTitle>Resource List</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>ID</TableHead>
+                  <TableHead>Designation</TableHead>
+                  <TableHead>Department</TableHead>
+                  <TableHead>Location</TableHead>
+                  <TableHead>Seniority</TableHead>
+                  <TableHead>Billable</TableHead>
+                  <TableHead>Monthly Cost</TableHead>
+                  <TableHead>Skills</TableHead>
+                  <TableHead className="text-center">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredResources.map((resource) => (
+                  <TableRow key={resource.employeeId ?? resource.resourceId}>
+                    <TableCell>
+                      <div>
+                        <p className="font-medium">{resource.fullName}</p>
+                        <p className="text-sm text-gray-500">{resource.employeeId ?? resource.resourceId}</p>
+                      </div>
+                    </TableCell>
+                    <TableCell>{resource.designation}</TableCell>
+                    <TableCell>{resource.department}</TableCell>
+                    <TableCell>{resource.location}</TableCell>
+                    <TableCell>{resource.seniorityLevel}</TableCell>
+                    <TableCell>
+                      <Badge variant={resource.billableStatus ? 'default' : 'secondary'}>
+                        {resource.billableStatus ? 'Billable' : 'Non-Billable'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{formatCurrency(resource.monthlySalaryCost)}</TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1">
+                        {(resource.skills || []).slice(0, 3).map((skill, index) => (
+                          <Badge key={index} variant="outline" className="text-xs">
+                            {skill}
                           </Badge>
-                        </TableCell>
-                        <TableCell>{formatCurrency(resource.monthlySalaryCost)}</TableCell>
-                        <TableCell>
-                          <div className="flex flex-wrap gap-1">
-                            {(resource.skills || []).slice(0, 3).map((skill, index) => (
-                              <Badge key={index} variant="outline" className="text-xs">
-                                {skill}
-                              </Badge>
-                            ))}
-                            {(resource.skills?.length || 0) > 3 && (
-                              <Badge variant="outline" className="text-xs">
-                                +{(resource.skills?.length || 0) - 3}
-                              </Badge>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={() => handleViewDetails(resource)}
-                            className="flex items-center gap-1"
-                          >
-                            <Eye className="h-4 w-4" />
-                            View Details
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                        ))}
+                        {(resource.skills?.length || 0) > 3 && (
+                          <Badge variant="outline" className="text-xs">
+                            +{(resource.skills?.length || 0) - 3}
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <div className="flex flex-row gap-2 justify-center">
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => handleViewDetails(resource)}
+                          className="flex items-center gap-1"
+                        >
+                          <Eye className="h-4 w-4" />
+                          View Details
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="default"
+                          onClick={() => handleEditResource(resource)}
+                          className="flex items-center gap-1"
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          disabled={deletingId === (resource.employeeId ?? resource.resourceId)}
+                          onClick={async () => {
+                            if (!window.confirm(`Delete resource ${resource.fullName}? This cannot be undone.`)) return;
+                            setDeletingId(resource.employeeId ?? resource.resourceId);
+                            try {
+                              const token = localStorage.getItem('token') || '';
+                              await import('@/lib/api').then(api => api.deleteResource(token, resource.employeeId ?? resource.resourceId));
+                              setRefreshFlag(f => f + 1);
+                            } catch (err: any) {
+                              setError(err?.message || 'Failed to delete resource');
+                            } finally {
+                              setDeletingId(null);
+                            }
+                          }}
+                        >
+                          {deletingId === (resource.employeeId ?? resource.resourceId) ? 'Deleting...' : 'Delete'}
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+            {filteredResources.length === 0 && (
+              <div className="text-center py-8">
+                <p className="text-gray-500">No resources found matching the current filters.</p>
               </div>
-            </CardContent>
-          </Card>
-        )}
-      </div>
-      {filteredResources.length === 0 && (
-        <Card className="mx-1 sm:mx-0">
-          <CardContent className="text-center py-8">
-            <p className="text-gray-500">No resources found matching the current filters.</p>
+            )}
           </CardContent>
         </Card>
+      ) : (
+        <div>
+          {filteredResources.map(resource => (
+            <MobileResourceCard key={resource.employeeId ?? resource.resourceId} resource={resource} />
+          ))}
+          {filteredResources.length === 0 && (
+            <div className="text-center py-8">
+              <p className="text-gray-500">No resources found matching the current filters.</p>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
-};
-
+}
 export default ResourceList;

@@ -3,9 +3,8 @@
 
 from sqlalchemy import Column, Integer, String, Float, Boolean, Date, ForeignKey, Table
 from sqlalchemy.orm import relationship
-from sqlalchemy.ext.declarative import declarative_base
 
-Base = declarative_base()
+from src.domain.models.base import Base
 
 # Association tables for many-to-many relationships
 project_resource = Table('project_resource', Base.metadata,
@@ -17,7 +16,9 @@ project_resource = Table('project_resource', Base.metadata,
 
 class Resource(Base):
     __tablename__ = 'resources'
+    id = Column(Integer, primary_key=True)
     resource_id = Column(String, unique=True)
+    employee_id = Column(String, unique=True, nullable=False)
     fullName = Column(String, nullable=False)
     designation = Column(String)
     department = Column(String)
@@ -58,6 +59,7 @@ class Resource(Base):
     def to_dict(self):
         return {
             'resourceId': self.resource_id,
+            'employeeId': self.employee_id,
             'fullName': self.fullName,
             'designation': self.designation,
             'department': self.department,
@@ -156,6 +158,15 @@ class Escalation(Base):
         return {c.name: getattr(self, c.name) for c in self.__table__.columns}
 
 class Milestone(Base):
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'progress': self.progress,
+            'status': self.status,
+            'date': self.date.isoformat() if self.date else None,
+            'project_id': self.project_id
+        }
     __tablename__ = 'milestones'
     id = Column(Integer, primary_key=True)
     name = Column(String)
@@ -165,7 +176,26 @@ class Milestone(Base):
     project_id = Column(Integer, ForeignKey('projects.id'))
     project = relationship('Project')
 
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'progress': self.progress,
+            'status': self.status,
+            'date': self.date.isoformat() if self.date else None,
+            'project_id': self.project_id
+        }
+
 class Risk(Base):
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'issue': self.issue,
+            'owner': self.owner,
+            'priority': self.priority,
+            'status': self.status,
+            'project_id': self.project_id
+        }
     __tablename__ = 'risks'
     id = Column(Integer, primary_key=True)
     issue = Column(String)
@@ -174,6 +204,16 @@ class Risk(Base):
     status = Column(String)
     project_id = Column(Integer, ForeignKey('projects.id'))
     project = relationship('Project')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'issue': self.issue,
+            'owner': self.owner,
+            'priority': self.priority,
+            'status': self.status,
+            'project_id': self.project_id
+        }
 
 class KPI(Base):
     __tablename__ = 'kpis'
@@ -187,6 +227,64 @@ class KPI(Base):
     project_id = Column(Integer, ForeignKey('projects.id'))
     project = relationship('Project')
 
+class Sprint(Base):
+    __tablename__ = 'sprints'
+    id = Column(Integer, primary_key=True)
+    sprint_number = Column(Integer)
+    velocity = Column(Float)
+    predictability = Column(Float)
+    defect_leakage = Column(Float)
+    on_time_delivery = Column(Float)
+    project_id = Column(Integer, ForeignKey('projects.id'))
+    project = relationship('Project')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'sprintNumber': self.sprint_number,
+            'velocity': self.velocity,
+            'predictability': self.predictability,
+            'defectLeakage': self.defect_leakage,
+            'onTimeDelivery': self.on_time_delivery,
+            'project_id': self.project_id
+        }
+
+class TeamMember(Base):
+    __tablename__ = 'team_members'
+    id = Column(Integer, primary_key=True)
+    name = Column(String)
+    role = Column(String)
+    department = Column(String)
+    location = Column(String)
+    project_id = Column(Integer, ForeignKey('projects.id'))
+    project = relationship('Project')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'role': self.role,
+            'department': self.department,
+            'location': self.location,
+            'project_id': self.project_id
+        }
+
+class EngineeringMetric(Base):
+    __tablename__ = 'engineering_metrics'
+    id = Column(Integer, primary_key=True)
+    development = Column(String)  # JSON string
+    qa = Column(String)           # JSON string
+    project_id = Column(Integer, ForeignKey('projects.id'))
+    project = relationship('Project')
+
+    def to_dict(self):
+        import json
+        return {
+            'id': self.id,
+            'development': json.loads(self.development) if self.development else {},
+            'qa': json.loads(self.qa) if self.qa else {},
+            'project_id': self.project_id
+        }
 class Finance(Base):
     __tablename__ = 'finance'
     id = Column(Integer, primary_key=True)

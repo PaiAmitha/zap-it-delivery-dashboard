@@ -1,24 +1,21 @@
-from sqlalchemy import Column, Integer, String, Date, ForeignKey
-from sqlalchemy.orm import relationship
-from .base import Base
+from src.presentation.extensions import db
 
-class Milestone(Base):
-    name = Column(String, nullable=False)
-    description = Column(String)
-    due_date = Column(String)
-    status = Column(String)
-    project_id = Column(String)
+class Milestone(db.Model):
     __tablename__ = 'milestones'
-    id = Column(Integer, primary_key=True)
-    name = Column(String)
-    progress = Column(Integer)
-    status = Column(String)
-    date = Column(Date)
-    project_id = Column(Integer, ForeignKey('projects.id'))
-    project = relationship('Project', back_populates='milestones')
-    milestone_type = Column(String)
-    owner = Column(String)
-    completion_date = Column(Date)
-    notes = Column(String)
-    risk_level = Column(String)
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String, nullable=False)
+    description = db.Column(db.String)
+    due_date = db.Column(db.String)
+    status = db.Column(db.String)
+    project_id = db.Column(db.Integer, db.ForeignKey('projects.id'))
+    progress = db.Column(db.Integer)
+    date = db.Column(db.Date)
+    milestone_type = db.Column(db.String)
+    owner = db.Column(db.String)
+    completion_date = db.Column(db.Date)
+    notes = db.Column(db.String)
+    risk_level = db.Column(db.String)
     # Add more fields as needed for analytics/reporting
+
+    def to_dict(self):
+        return {c.name: getattr(self, c.name) for c in self.__table__.columns}

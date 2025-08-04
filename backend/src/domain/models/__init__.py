@@ -1,4 +1,3 @@
-from .base import Base
 from .resource import Resource
 from .project import Project
 from .intern import Intern
@@ -9,7 +8,6 @@ from .kpi import KPI
 from .finance import Finance
 
 __all__ = [
-    "Base",
     "Resource",
     "Project",
     "Intern",

@@ -6,13 +6,12 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Search, Filter, Plus, Eye, Edit2, ChevronLeft, ChevronRight } from "lucide-react";
 import { useState, useEffect } from "react";
-import { AddEditResourceModal } from "../resources/AddEditResourceModal";
-import { createResource } from "@/lib/api";
-import { useNavigate } from "react-router-dom";
-import { getResources, updateResource } from "@/lib/api";
-
+// Removed AddEditResourceModal usage
+import { createResource, getResources } from "@/lib/api";
+import { useNavigate, useLocation } from "react-router-dom";
 export const ResourcesTab = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterDepartment, setFilterDepartment] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
@@ -20,8 +19,7 @@ export const ResourcesTab = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [selectedResource, setSelectedResource] = useState<any>(null);
+  // Removed edit modal state
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
@@ -39,15 +37,24 @@ export const ResourcesTab = () => {
           pageSize: itemsPerPage
         };
         const result = await getResources(token, params);
-        setResources((result as any).resources || []);
+        // Exclude interns from the main resource list
+        const allResources = (result as any).resources || [];
+        setResources(allResources.filter((r: any) => !r.is_intern));
       } catch (err: any) {
         setError(err?.message || 'Failed to fetch resources');
       } finally {
         setLoading(false);
       }
     };
-    fetchResources();
-  }, [searchTerm, filterDepartment, filterStatus, currentPage]);
+    // Refetch if redirected with refresh state
+    if (location.state && location.state.refresh) {
+      fetchResources();
+      // Clear refresh state so it doesn't refetch again
+      navigate(location.pathname, { replace: true, state: {} });
+    } else {
+      fetchResources();
+    }
+  }, [searchTerm, filterDepartment, filterStatus, currentPage, location.state]);
 
 
 
@@ -59,44 +66,18 @@ export const ResourcesTab = () => {
   const paginatedResources = resources;
 
   const handleAddResource = () => {
-    setSelectedResource(null);
     setIsAddModalOpen(true);
   };
 
   const handleEditResource = (resource: any) => {
-    setSelectedResource(resource);
-    setIsEditModalOpen(true);
+    navigate("/add-resource", { state: { resource, mode: "edit" } });
   };
 
   const handleViewResource = (resource: any) => {
-    navigate(`/resource-details/${resource.resourceId}`);
+    navigate(`/resource-details/${resource.resourceId || resource.id || resource.employeeId}`);
   };
 
-  const handleSaveResource = async (data: any) => {
-    const token = localStorage.getItem("token") || "";
-    try {
-      if (selectedResource) {
-        await updateResource(token, selectedResource.resourceId, data);
-      } else {
-        await createResource(token, data);
-      }
-      // Refetch resources after add/edit
-      const params: any = {
-        search: searchTerm,
-        department: filterDepartment !== 'all' ? filterDepartment : undefined,
-        status: filterStatus !== 'all' ? filterStatus : undefined,
-        page: currentPage,
-        pageSize: itemsPerPage
-      };
-      const result = await getResources(token, params);
-      setResources((result as any).resources || []);
-    } catch (err) {
-      setError(err?.message || 'Failed to save resource');
-    }
-    setIsAddModalOpen(false);
-    setIsEditModalOpen(false);
-    setSelectedResource(null);
-  };
+  // Removed handleSaveResource (modal logic)
 
   const formatCurrency = (amount: number) => `$${amount?.toLocaleString() || '0'}`;
 
@@ -108,10 +89,7 @@ export const ResourcesTab = () => {
             <CardTitle className="text-xl font-semibold text-gray-900">Master Resource Directory</CardTitle>
             <p className="text-gray-600 text-sm mt-1">Comprehensive resource records and management</p>
           </div>
-          <Button onClick={handleAddResource} className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 shadow-lg hover:shadow-xl transition-all duration-200">
-            <Plus className="h-4 w-4" />
-            Add Resource
-          </Button>
+          {/* Removed Add Resource button as requested */}
         </CardHeader>
         <CardContent>
           {/* Enhanced Filters */}
@@ -156,8 +134,9 @@ export const ResourcesTab = () => {
 
           {/* Enhanced Resource Records Table */}
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-            <div className="max-h-[600px] overflow-y-auto">
-              <Table>
+            {/* Make horizontal scrollbar always visible */}
+            <div className="max-h-[600px] overflow-y-auto overflow-x-auto scrollbar scrollbar-thumb-gray-400 scrollbar-track-gray-100" style={{ minWidth: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+              <Table className="min-w-[900px]">
                 <TableHeader className="bg-gray-50 sticky top-0 z-10">
                   <TableRow>
                     <TableHead className="font-semibold text-gray-900">Employee ID</TableHead>
@@ -196,7 +175,36 @@ export const ResourcesTab = () => {
                         <TableCell className="text-gray-700">{resource.department}</TableCell>
                         <TableCell>
                           <Badge variant="outline" className="text-xs">
-                            {Array.isArray(resource.skills) ? resource.skills.join(', ') : resource.skills}
+                            {(() => {
+                              let skills = resource.skills;
+                              const cleanSkill = (s: string) => s.replace(/[{}\[\]"\\]+/g, '').trim();
+                              if (Array.isArray(skills)) {
+                                const cleaned = skills.map(s => cleanSkill(s)).filter(s => !!s);
+                                return cleaned.length ? cleaned.join(', ') : '—';
+                              }
+                              if (typeof skills === 'string') {
+                                skills = skills.replace(/[{}\[\]"\\]+/g, '').split(',').map(s => cleanSkill(s)).filter(s => !!s);
+                                return skills.length ? skills.join(', ') : '—';
+                              }
+                              return '—';
+                            })()}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="text-xs">
+                            {(() => {
+                              let primarySkills = resource.primarySkills;
+                              const cleanSkill = (s: string) => s.replace(/[{}\[\]"\\]+/g, '').trim();
+                              if (Array.isArray(primarySkills)) {
+                                const cleaned = primarySkills.map(s => cleanSkill(s)).filter(s => !!s);
+                                return cleaned.length ? cleaned.join(', ') : '—';
+                              }
+                              if (typeof primarySkills === 'string') {
+                                primarySkills = primarySkills.replace(/[{}\[\]"\\]+/g, '').split(',').map(s => cleanSkill(s)).filter(s => !!s);
+                                return primarySkills.length ? primarySkills.join(', ') : '—';
+                              }
+                              return '—';
+                            })()}
                           </Badge>
                         </TableCell>
                         <TableCell>
@@ -214,7 +222,11 @@ export const ResourcesTab = () => {
                           </Badge>
                         </TableCell>
                         <TableCell className="font-medium text-gray-900">
-                          {formatCurrency(resource.monthlySalaryCost ?? resource.monthly_cost ?? resource.monthlyCost)}
+                          {(() => {
+                            const salaryRaw = resource.monthlySalaryCost ?? resource.monthly_cost ?? resource.monthlyCost;
+                            const salary = Number(salaryRaw);
+                            return formatCurrency(isNaN(salary) || !salaryRaw ? 0 : salary);
+                          })()}
                         </TableCell>
                         <TableCell>
                           <div className="flex justify-center gap-2">
@@ -228,22 +240,23 @@ export const ResourcesTab = () => {
                             </Button>
                             <Button 
                               size="sm" 
-                              variant="outline" 
+                              variant="default" 
                               onClick={() => handleEditResource(resource)}
                               className="hover:bg-green-50 hover:border-green-300 hover:text-green-600 transition-all duration-200"
                             >
-                              <Edit2 className="h-4 w-4" />
+                              <Edit2 className="h-4 w-4" /> Edit
                             </Button>
                             <Button
                               size="sm"
                               variant="destructive"
                               onClick={async () => {
-                                if (!window.confirm('Are you sure you want to delete this resource?')) return;
+                                if (!window.confirm('Are you sure you want to delete this resource permanently?')) return;
                                 setLoading(true);
                                 setError(null);
                                 try {
                                   const token = localStorage.getItem('token') || '';
-                                  await import("@/lib/api").then(api => api.deleteResource(token, resource.resourceId));
+                                  const id = resource.resourceId ?? resource.id ?? resource.employeeId;
+                                  await import("@/lib/api").then(api => api.deleteResource(token, id));
                                   // Refetch resources after delete
                                   const params: any = {
                                     search: searchTerm,
@@ -323,21 +336,7 @@ export const ResourcesTab = () => {
         </CardContent>
       </Card>
 
-      {/* Modals */}
-      <AddEditResourceModal
-        isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
-        onSave={handleSaveResource}
-        mode="add"
-      />
-
-      <AddEditResourceModal
-        isOpen={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
-        onSave={handleSaveResource}
-        resource={selectedResource}
-        mode="edit"
-      />
     </div>
   );
 };
+export default ResourcesTab;

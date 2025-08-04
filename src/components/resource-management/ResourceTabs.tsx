@@ -13,7 +13,6 @@ import { UpcomingReleases } from "@/components/resources/UpcomingReleases";
 import { TrendingUp, DollarSign, GraduationCap, Database, Search, Download, Plus, Users, Filter } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-// ...existing code...
 
 interface ResourceTabsProps {
   seniorityData: any[];
@@ -113,8 +112,7 @@ export const ResourceTabs = ({
   };
 
   const handleEditResource = (resource: any) => {
-    setSelectedResource(resource);
-    setIsEditModalOpen(true);
+    navigate("/add-resource", { state: { resource, mode: "edit" } });
   };
 
   const handleViewResource = (resource: any) => {
@@ -429,20 +427,7 @@ export const ResourceTabs = ({
       </Tabs>
 
       {/* Modals */}
-      <AddEditResourceModal
-        isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
-        onSave={handleSaveResource}
-        mode="add"
-      />
 
-      <AddEditResourceModal
-        isOpen={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
-        onSave={handleSaveResource}
-        resource={selectedResource}
-        mode="edit"
-      />
 
     </>
   );

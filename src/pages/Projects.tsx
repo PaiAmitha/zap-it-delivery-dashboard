@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,12 +29,16 @@ interface Project {
   id: string;
   name: string;
   description: string;
-  customer: string;
+  client: string;
   category: string;
   status: "On Track" | "At Risk" | "Critical" | "Delayed";
   progress: number;
   teamSize: number;
   teamLead?: string;
+  milestones?: any[];
+  riskCount?: number;
+  sprints?: any[];
+  teams?: any[];
 }
 
 const Projects = () => {
@@ -44,7 +47,7 @@ const Projects = () => {
   const location = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All Status");
-  const [customerFilter, setCustomerFilter] = useState("All Customers");
+  const [clientFilter, setClientFilter] = useState("All Clients");
   const [categoryFilter, setCategoryFilter] = useState("All Categories");
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
@@ -65,17 +68,51 @@ const Projects = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   // Normalize backend project data to ensure customer, teamLead, teamSize fields are set
   function normalizeProjects(rawProjects: any[]): Project[] {
-    return rawProjects.map((p: any) => ({
-      id: p.id,
-      name: p.name,
-      description: p.description,
-      customer: p.customer || p.client || p.project_client || "",
-      category: p.category || p.project_type || "",
-      status: p.status || "On Track",
-      progress: typeof p.progress === "number" ? p.progress : 0,
-      teamSize: p.teamSize || p.team_size || (p.teamMembers ? p.teamMembers.length : 0) || 0,
-      teamLead: p.teamLead || p.team_lead || (p.teamMembers && p.teamMembers[0]?.name) || "",
-    }));
+    return rawProjects.map((p: any) => {
+      const teamMembers = p.teamMembers || [];
+      return {
+        id: p.id,
+        name: p.name,
+        description: p.description,
+        client: p.client || p.customer || p.project_client || "",
+        category: p.category || p.project_type || "",
+        status: p.status || "On Track",
+        progress: typeof p.progress === "number" ? p.progress : 0,
+        teamSize: teamMembers.length > 0 ? teamMembers.length : (p.teamSize || p.team_size || 0),
+        teamLead: p.teamLead || p.team_lead || (teamMembers[0]?.full_name) || "",
+        milestones: p.milestones || [],
+        riskCount: p.riskCount || (p.risks ? p.risks.length : 0) || 0,
+        sprints: p.sprints || [],
+        teams: p.teams || [],
+        teamMembers,
+        engineeringMetrics: p.engineeringMetrics || p.engineering_metrics || {},
+        risks: p.risks || [],
+        // Add all fields from project details for consistency
+        actual_cost_to_date: p.actual_cost_to_date,
+        billable_resources: p.billable_resources,
+        billing_rate: p.billing_rate,
+        budget: p.budget,
+        health_status: p.health_status,
+        margin: p.margin,
+        monthly_burn: p.monthly_burn,
+        net_position: p.net_position,
+        non_billable_resources: p.non_billable_resources,
+        priority: p.priority,
+        priority_level: p.priority_level,
+        profit_margin: p.profit_margin,
+        project_type: p.project_type,
+        projected_completion: p.projected_completion,
+        required_skills: p.required_skills,
+        required_skills_list: p.required_skills_list,
+        resource_allocation: p.resource_allocation,
+        shadow_resources: p.shadow_resources,
+        sow_value: p.sow_value,
+        start_date: p.start_date,
+        status_detail: p.status_detail,
+        velocity_trend: p.velocity_trend,
+        // Add more fields as needed
+      };
+    });
   }
 
   const fetchProjects = async () => {
@@ -84,12 +121,18 @@ const Projects = () => {
     try {
       // TODO: Replace with real auth token logic
       const token = localStorage.getItem('token') || '';
+      console.log('Calling getProjects API with token:', token);
       const data = await import("@/lib/api").then(m => m.getProjects(token));
+      console.log('getProjects API response:', data);
       // If backend returns { projects: [...] }, use data.projects
-      const projectArray = Array.isArray(data) ? data : (data.projects || []);
-      setProjects(normalizeProjects(projectArray));
+      const projectArray = Array.isArray(data) ? data : (data && typeof data === 'object' && 'projects' in data ? data.projects : []);
+      setProjects(normalizeProjects(Array.isArray(projectArray) ? projectArray : []));
     } catch (err: any) {
-      setError(err?.message || 'Failed to load projects');
+      let errorMsg = 'Failed to load projects';
+      if (err?.status) errorMsg += ` (HTTP ${err.status})`;
+      if (err?.error) errorMsg += `: ${err.error}`;
+      console.error('Error fetching projects:', err);
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -119,10 +162,9 @@ const Projects = () => {
     const matchesSearch = project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          project.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === "All Status" || project.status === statusFilter;
-    const matchesCustomer = customerFilter === "All Customers" || project.customer === customerFilter;
+    const matchesClient = clientFilter === "All Clients" || project.client === clientFilter;
     const matchesCategory = categoryFilter === "All Categories" || project.category === categoryFilter;
-    
-    return matchesSearch && matchesStatus && matchesCustomer && matchesCategory;
+    return matchesSearch && matchesStatus && matchesClient && matchesCategory;
   });
 
   return (
@@ -169,12 +211,12 @@ const Projects = () => {
                     <SelectItem value="Delayed">Delayed</SelectItem>
                   </SelectContent>
                 </Select>
-                <Select value={customerFilter} onValueChange={setCustomerFilter}>
+                <Select value={clientFilter} onValueChange={setClientFilter}>
                   <SelectTrigger className="w-40">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="All Customers">All Customers</SelectItem>
+                    <SelectItem value="All Clients">All Clients</SelectItem>
                     <SelectItem value="Zenmate">Zenmate</SelectItem>
                     <SelectItem value="TechCorp Inc">TechCorp Inc</SelectItem>
                     <SelectItem value="MedLife Systems">MedLife Systems</SelectItem>
@@ -206,7 +248,7 @@ const Projects = () => {
               <TableRow>
                 <TableHead>Project Name</TableHead>
                 <TableHead>Description</TableHead>
-                <TableHead>Customer</TableHead>
+                <TableHead>Client</TableHead>
                 <TableHead>Team Lead</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Progress</TableHead>
@@ -219,7 +261,7 @@ const Projects = () => {
                 <TableRow key={project.id} className="hover:bg-gray-50">
                   <TableCell className="font-medium">{project.name}</TableCell>
                   <TableCell className="text-gray-600">{project.description}</TableCell>
-                  <TableCell>{project.customer}</TableCell>
+                  <TableCell>{project.client}</TableCell>
                   <TableCell>
                     {project.teamLead && (
                       <UserHoverCard

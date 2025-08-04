@@ -1,339 +1,361 @@
 from flask import Blueprint, jsonify, request
 from flask_cors import cross_origin
-import logging
-from datetime import datetime, timedelta
-from src.infrastructure.db import SessionLocal
 from src.domain.models import Resource
+from src.presentation.extensions import db
 
 resource_bp = Blueprint('resources', __name__)
 
-# --- Financial Dashboard Endpoint ---
-@resource_bp.route('/financial-overview', methods=['GET', 'OPTIONS'])
+@resource_bp.route('/api/interns/<int:id>', methods=['DELETE'])
 @cross_origin()
-def get_financial_dashboard():
-    if request.method == 'OPTIONS':
-        return '', 204
-    db = SessionLocal()
-    resources = db.query(Resource).all()
-    # Example aggregation logic
-    monthlyFinancials = []
-    ytdTotals = {'total': 0, 'billable': 0, 'nonBillable': 0, 'intern': 0}
-    for r in resources:
-        cost = getattr(r, 'monthly_cost', 0)
-        ytdTotals['total'] += cost
-        if getattr(r, 'billableStatus', False):
-            ytdTotals['billable'] += cost
-        elif getattr(r, 'is_intern', False):
-            ytdTotals['intern'] += cost
-        else:
-            ytdTotals['nonBillable'] += cost
-    # Example: monthly breakdown (could be improved with real data)
-    monthlyFinancials.append({
-        'month': 'Jul 2025',
-        'total': ytdTotals['total'],
-        'billable': ytdTotals['billable'],
-        'nonBillable': ytdTotals['nonBillable'],
-        'intern': ytdTotals['intern']
-    })
-    db.close()
-    return jsonify({'financialDashboard': {
-        'monthlyFinancials': monthlyFinancials,
-        'ytdTotals': ytdTotals
-    }})
-# --- Resource Analytics Endpoints ---
-@resource_bp.route('/resources/analytics/seniority', methods=['GET', 'OPTIONS'])
-@cross_origin()
-def get_seniority_analytics():
-    if request.method == 'OPTIONS':
-        return '', 204
-    db = SessionLocal()
-    resources = db.query(Resource).all()
-    seniority_buckets = {
-        'Senior (6+ yrs)': {'count': 0, 'monthlyCost': 0},
-        'Mid-Senior (3-6 yrs)': {'count': 0, 'monthlyCost': 0},
-        'Junior (1-3 yrs)': {'count': 0, 'monthlyCost': 0}
-    }
-    for r in resources:
-        years = getattr(r, 'years_experience', 0)
-        cost = getattr(r, 'monthly_cost', 0)
-        if years >= 6:
-            bucket = 'Senior (6+ yrs)'
-        elif years >= 3:
-            bucket = 'Mid-Senior (3-6 yrs)'
-        else:
-            bucket = 'Junior (1-3 yrs)'
-        seniority_buckets[bucket]['count'] += 1
-        seniority_buckets[bucket]['monthlyCost'] += cost
-    data = []
-    total = sum(b['count'] for b in seniority_buckets.values())
-    for k, v in seniority_buckets.items():
-        data.append({
-            'level': k,
-            'count': v['count'],
-            'percentage': round((v['count']/total)*100, 1) if total else 0,
-            'monthlyCost': v['monthlyCost'],
-            'ytdCost': v['monthlyCost']*6
-        })
-    db.close()
-    return jsonify({'seniorityData': data})
+def delete_intern(id):
+    from src.domain.models.intern import Intern
+    intern = Intern.query.filter_by(id=id).first()
+    if not intern:
+        return jsonify({'error': 'Intern not found'}), 404
+    db.session.delete(intern)
+    db.session.commit()
+    return jsonify({'message': 'Intern deleted'})
 
-@resource_bp.route('/resources/analytics/skills', methods=['GET', 'OPTIONS'])
-@cross_origin()
-def get_skill_analytics():
-    if request.method == 'OPTIONS':
-        return '', 204
-    db = SessionLocal()
-    resources = db.query(Resource).all()
-    skill_buckets = {}
-    for r in resources:
-        skills = (r.skills or '').split(',')
-        cost = getattr(r, 'monthly_cost', 0)
-        for skill in skills:
-            skill = skill.strip()
-            if not skill:
-                continue
-            if skill not in skill_buckets:
-                skill_buckets[skill] = {'count': 0, 'monthlyCost': 0}
-            skill_buckets[skill]['count'] += 1
-            skill_buckets[skill]['monthlyCost'] += cost
-    data = [{'category': k, 'count': v['count'], 'monthlyCost': v['monthlyCost']} for k, v in skill_buckets.items()]
-    db.close()
-    return jsonify({'skillData': data})
-
-@resource_bp.route('/resources/analytics/aging', methods=['GET', 'OPTIONS'])
-@cross_origin()
-def get_aging_analytics():
-    if request.method == 'OPTIONS':
-        return '', 204
-    db = SessionLocal()
-    resources = db.query(Resource).all()
-    aging_buckets = {
-        '<30 days': {'count': 0, 'monthlyCost': 0, 'avgDailyCost': 0, 'riskLevel': 'low'},
-        '30-60 days': {'count': 0, 'monthlyCost': 0, 'avgDailyCost': 0, 'riskLevel': 'medium'},
-        '60-90 days': {'count': 0, 'monthlyCost': 0, 'avgDailyCost': 0, 'riskLevel': 'high'},
-        '>90 days': {'count': 0, 'monthlyCost': 0, 'avgDailyCost': 0, 'riskLevel': 'high'}
-    }
-    today = datetime.today().date()
-    for r in resources:
-        bench_days = getattr(r, 'bench_days', 0)
-        cost = getattr(r, 'monthly_cost', 0)
-        if bench_days < 30:
-            bucket = '<30 days'
-        elif bench_days < 60:
-            bucket = '30-60 days'
-        elif bench_days < 90:
-            bucket = '60-90 days'
-        else:
-            bucket = '>90 days'
-        aging_buckets[bucket]['count'] += 1
-        aging_buckets[bucket]['monthlyCost'] += cost
-        aging_buckets[bucket]['avgDailyCost'] += cost/30 if cost else 0
-    data = []
-    for k, v in aging_buckets.items():
-        data.append({
-            'bucket': k,
-            'count': v['count'],
-            'monthlyCost': v['monthlyCost'],
-            'avgDailyCost': round(v['avgDailyCost'], 2),
-            'riskLevel': v['riskLevel']
-        })
-    db.close()
-    return jsonify({'agingData': data})
-
-@resource_bp.route('/resources/analytics/engagement', methods=['GET', 'OPTIONS'])
-@cross_origin()
-def get_engagement_analytics():
-    if request.method == 'OPTIONS':
-        return '', 204
-    db = SessionLocal()
-    resources = db.query(Resource).all()
-    engagement_buckets = {}
-    for r in resources:
-        engagement_type = getattr(r, 'engagement_type', None) or 'Unknown'
-        cost = getattr(r, 'monthly_cost', 0)
-        start_date = getattr(r, 'engagement_start_date', None)
-        end_date = getattr(r, 'engagement_end_date', None)
-        notes = getattr(r, 'engagement_notes', '')
-        if engagement_type not in engagement_buckets:
-            engagement_buckets[engagement_type] = {'count': 0, 'monthlyCost': 0, 'startDate': start_date, 'endDate': end_date, 'notes': notes}
-        engagement_buckets[engagement_type]['count'] += 1
-        engagement_buckets[engagement_type]['monthlyCost'] += cost
-    data = []
-    for k, v in engagement_buckets.items():
-        data.append({
-            'type': k,
-            'count': v['count'],
-            'monthlyCost': v['monthlyCost'],
-            'startDate': v['startDate'].strftime('%Y-%m-%d') if v['startDate'] else None,
-            'endDate': v['endDate'].strftime('%Y-%m-%d') if v['endDate'] else None,
-            'notes': v['notes']
-        })
-    db.close()
-    return jsonify({'engagementData': data})
-
-from flask import Blueprint, jsonify, request
-from flask_cors import cross_origin
-import logging
-from datetime import datetime, timedelta
-from src.infrastructure.db import SessionLocal
-from src.domain.models import Resource
-
-resource_bp = Blueprint('resources', __name__)
-
-# --- Upcoming Releases Endpoint ---
-@resource_bp.route('/upcoming-releases', methods=['GET', 'OPTIONS'])
-@cross_origin()
-def get_upcoming_releases():
-    if request.method == 'OPTIONS':
-        return '', 204
-    db = SessionLocal()
-    today = datetime.today().date()
-    two_months_later = today + timedelta(days=62)
-    resources = db.query(Resource).all()
-    upcoming = []
-    for r in resources:
-        end_dates = []
-        if r.engagement_end_date:
-            end_dates.append(r.engagement_end_date)
-        if hasattr(r, 'training_end_date') and r.training_end_date:
-            end_dates.append(r.training_end_date)
-        if r.internship_end_date:
-            end_dates.append(r.internship_end_date)
-        soonest = None
-        for d in end_dates:
-            if d and today <= d <= two_months_later:
-                if not soonest or d < soonest:
-                    soonest = d
-        if soonest:
-            upcoming.append({
-                'employeeId': r.employee_id or r.id,
-                'fullName': r.full_name,
-                'releaseDate': soonest.strftime('%Y-%m-%d'),
-                'utilization': getattr(r, 'utilization_rate', None) or getattr(r, 'utilization', None) or 0,
-                'currentProject': r.project_name or r.current_engagement or '',
-                'skills': r.skills.split(',') if r.skills else [],
-                'status': getattr(r, 'status', 'confirmed'),
-                'resourceId': r.id,
-            })
-    db.close()
-    return jsonify({'upcomingReleases': upcoming})
-
-# --- Interns Endpoint ---
-@resource_bp.route('/interns', methods=['GET', 'OPTIONS'])
-@cross_origin()
-def get_interns():
-    if request.method == 'OPTIONS':
-        return '', 204
-    db = SessionLocal()
-    interns = db.query(Resource).filter(Resource.is_intern == True).all()
-    data = [r.to_dict() for r in interns]
-    db.close()
-    return jsonify({'interns': data})
-
-# --- Resignations Endpoint ---
-
-@resource_bp.route('/resignations', methods=['GET', 'OPTIONS'])
+# Resignations endpoint for resource management
+@resource_bp.route('/resignations', methods=['GET'])
 @cross_origin()
 def get_resignations():
-    if request.method == 'OPTIONS':
-        return '', 204
-    db = SessionLocal()
+    from datetime import datetime, timedelta
     today = datetime.today().date()
-    two_months_ago = today - timedelta(days=62)
-    resigned = db.query(Resource).filter(
-        Resource.status.in_(['resigned', 'Resigned', 'RESIGNED']),
-        Resource.reason != None,
-        Resource.reason != '',
-        Resource.last_project_end_date != None,
-        Resource.last_project_end_date >= two_months_ago,
-        Resource.last_project_end_date <= today
-    ).all()
-    data = [r.to_dict() for r in resigned]
-    db.close()
-    return jsonify({'resignations': data})
-# --- Locations Endpoint ---
-@resource_bp.route('/locations', methods=['GET', 'OPTIONS'])
-@cross_origin()
-def get_locations():
-    if request.method == 'OPTIONS':
-        return '', 204
-    db = SessionLocal()
-    locations = db.query(Resource.location).distinct().all()
-    location_list = [loc[0] for loc in locations if loc[0]]
-    db.close()
-    return jsonify({'locations': location_list})
+    two_months_later = today + timedelta(days=60)
+    # Query resources whose last working day is within the next 2 months
+    resources = Resource.query.filter(Resource.last_working_day != None).all()
+    resignations = []
+    for r in resources:
+        try:
+            lwd = r.last_working_day
+            if isinstance(lwd, str):
+                lwd_date = datetime.strptime(lwd, "%Y-%m-%d").date()
+            else:
+                lwd_date = lwd
+            if today <= lwd_date <= two_months_later:
+                resource_dict = r.to_dict()
+                resource_dict["last_working_day"] = lwd_date.strftime("%Y-%m-%d")
+                # Ensure employeeId is present and resourceId is not used in its place
+                resource_dict["employeeId"] = r.employee_id or r.id
+                resignations.append(resource_dict)
+        except Exception as e:
+            continue
+    return jsonify({"resignations": resignations})
 
-# --- Resource CRUD Endpoints ---
-@resource_bp.route('/resources', methods=['GET', 'OPTIONS'])
+@resource_bp.route('/resources/<string:employeeId>', methods=['GET'])
 @cross_origin()
-def get_resources():
-    if request.method == 'OPTIONS':
-        return '', 204
-    db = SessionLocal()
-    resources = db.query(Resource).all()
-    data = [r.to_dict() for r in resources]
-    db.close()
-    return jsonify({'resources': data})
-
-@resource_bp.route('/resources', methods=['POST', 'OPTIONS'])
-@cross_origin()
-def create_resource():
-    if request.method == 'OPTIONS':
-        return '', 204
-    db = SessionLocal()
-    data = request.get_json()
-    resource = Resource(**data)
-    db.add(resource)
-    db.commit()
-    db.refresh(resource)
-    result = resource.to_dict()
-    db.close()
-    return jsonify(result), 201
-
-@resource_bp.route('/resources/<int:resource_id>', methods=['GET', 'OPTIONS'])
-@cross_origin()
-def get_resource_by_id(resource_id):
-    if request.method == 'OPTIONS':
-        return '', 204
-    db = SessionLocal()
-    resource = db.query(Resource).filter(Resource.id == resource_id).first()
+def get_resource_by_employee_id(employeeId):
+    print(f"DEBUG: Received employeeId param: {employeeId}")
+    resource = Resource.query.filter_by(employee_id=employeeId).first()
+    print(f"DEBUG: Resource found: {resource}")
     if not resource:
-        db.close()
-        return jsonify({'error': 'Resource not found'}), 404
-    data = resource.to_dict()
-    db.close()
-    return jsonify(data)
+        return jsonify({'error': f'Resource not found for employeeId {employeeId}'}), 404
+    resource_dict = resource.to_dict()
+    resource_dict['employeeId'] = resource.employee_id
+    resource_dict['resourceId'] = resource.resource_id
+    print(f"DEBUG: Resource dict returned: {resource_dict}")
+    return jsonify({'resource': resource_dict})
 
-@resource_bp.route('/resources/<int:resource_id>', methods=['PUT', 'OPTIONS'])
+
+
+@resource_bp.route('/resources', methods=['GET'])
 @cross_origin()
-def update_resource(resource_id):
-    if request.method == 'OPTIONS':
-        return '', 204
-    db = SessionLocal()
-    data = request.get_json()
-    resource = db.query(Resource).filter(Resource.id == resource_id).first()
+def list_resources():
+    try:
+        seniority = request.args.get('seniority')
+        billable = request.args.get('billable')
+        query = Resource.query
+        if seniority:
+            query = query.filter(Resource.seniorityLevel.ilike(seniority))
+        if billable == 'true':
+            query = query.filter(Resource.billableStatus == True)
+        all_resources = query.all()
+        print('DEBUG: All resources from DB:', [(getattr(r, 'employee_id', None), getattr(r, 'resource_id', None), getattr(r, 'monthlySalaryCost', None)) for r in all_resources])
+        resources = [r for r in all_resources if hasattr(r, 'employee_id') and r.employee_id]
+        mapped_resources = [dict(r.to_dict(), employeeId=r.employee_id) for r in resources]
+        for r in mapped_resources:
+            print(f"DEBUG: Resource in API response: employeeId={r.get('employeeId')}, monthlySalaryCost={r.get('monthlySalaryCost')}")
+            if 'status' in r:
+                del r['status']
+        return jsonify({
+            'resources': mapped_resources,
+            'total_resources': len(mapped_resources),
+            'non_billable_resources': len([r for r in mapped_resources if not r['billableStatus']]),
+            'intern_resources': len([r for r in mapped_resources if r['is_intern']])
+        })
+    except Exception as e:
+        print('ERROR in list_resources:', str(e))
+        return jsonify({'error': 'Failed to fetch resources', 'details': str(e)}), 500
+
+@resource_bp.route('/resources', methods=['POST'])
+@cross_origin()
+def add_resource():
+    data = request.json
+    # Convert all camelCase keys to snake_case for SQLAlchemy compatibility
+    import re
+    def camel_to_snake(name):
+        s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
+        return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
+
+    mapped_data = {}
+    for k, v in data.items():
+        snake_key = camel_to_snake(k)
+        mapped_data[snake_key] = None if v == "" else v
+
+    # Validate required fields for Resource
+    if not mapped_data.get('employee_id'):
+        return jsonify({'error': 'employeeId is required to create a resource.'}), 400
+
+    # Check if this is an intern (by is_intern flag or intern-specific fields)
+    is_intern = mapped_data.get('is_intern') or 'education' in mapped_data or 'conversion_potential' in mapped_data
+    if is_intern:
+        from src.domain.models.intern import Intern
+        intern = Intern(**mapped_data)
+        db.session.add(intern)
+        try:
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            if hasattr(e, 'orig') and 'duplicate key value violates unique constraint' in str(e.orig):
+                return jsonify({'error': 'An intern with this employeeId already exists.'}), 409
+            return jsonify({'error': 'Failed to add intern', 'details': str(e)}), 500
+        intern_dict = intern.__dict__.copy()
+        intern_dict.pop('_sa_instance_state', None)
+        intern_dict['employeeId'] = intern.employee_id
+        intern_dict['internId'] = intern.id
+        return jsonify({'message': 'Intern added', 'intern': intern_dict}), 201
+    else:
+        resource = Resource(**mapped_data)
+        db.session.add(resource)
+        try:
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            if hasattr(e, 'orig') and 'duplicate key value violates unique constraint' in str(e.orig):
+                return jsonify({'error': 'A resource with this employeeId already exists.'}), 409
+            return jsonify({'error': 'Failed to add resource', 'details': str(e)}), 500
+        resource_dict = resource.to_dict()
+        resource_dict['employeeId'] = resource.employee_id
+        resource_dict['resourceId'] = getattr(resource, 'resource_id', None)
+        return jsonify({'message': 'Resource added', 'resource': resource_dict}), 201
+
+@resource_bp.route('/resources/<int:id>', methods=['PUT'])
+@cross_origin()
+def edit_resource(id):
+    data = request.json
+    # Convert camelCase keys to snake_case for SQLAlchemy compatibility
+    import re
+    def camel_to_snake(name):
+        s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
+        return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
+    mapped_data = {}
+    for k, v in data.items():
+        snake_key = camel_to_snake(k)
+        # Convert empty strings to None for DB compatibility
+        mapped_data[snake_key] = None if v == "" else v
+    resource = Resource.query.filter_by(id=id).first()
     if not resource:
-        db.close()
         return jsonify({'error': 'Resource not found'}), 404
-    for key, value in data.items():
+    for key, value in mapped_data.items():
         setattr(resource, key, value)
-    db.commit()
-    db.refresh(resource)
-    result = resource.to_dict()
-    db.close()
-    return jsonify(result)
+    db.session.commit()
+    resource_dict = resource.to_dict()
+    resource_dict['employeeId'] = resource.employee_id
+    resource_dict['resourceId'] = getattr(resource, 'resource_id', None) or getattr(resource, 'id', None)
+    print(f"DEBUG: Resource updated, DB value monthly_salary_cost={getattr(resource, 'monthlySalaryCost', None)}")
+    print(f"DEBUG: Resource dict returned after update: {resource_dict}")
+    return jsonify({'message': 'Resource updated', 'resource': resource_dict})
 
-@resource_bp.route('/resources/<int:resource_id>', methods=['DELETE', 'OPTIONS'])
+@resource_bp.route('/resources/<int:id>', methods=['DELETE'])
 @cross_origin()
-def delete_resource(resource_id):
-    if request.method == 'OPTIONS':
-        return '', 204
-    db = SessionLocal()
-    resource = db.query(Resource).filter(Resource.id == resource_id).first()
+def delete_resource(id):
+    resource = Resource.query.filter_by(id=id).first()
     if not resource:
-        db.close()
         return jsonify({'error': 'Resource not found'}), 404
-    db.delete(resource)
-    db.commit()
-    db.close()
-    return jsonify({'deleted': True})
+    db.session.delete(resource)
+    db.session.commit()
+    return jsonify({'message': 'Resource deleted'})
+
+@resource_bp.route('/resources/analytics/kpi-counts', methods=['GET'])
+@cross_origin()
+def kpi_counts():
+    resources = Resource.query.all()
+    total = len(resources)
+    billable = len([r for r in resources if r.billableStatus])
+    non_billable = len([r for r in resources if not r.billableStatus and not r.is_intern])
+    intern = len([r for r in resources if r.is_intern])
+    return jsonify({'resourceCounts': {
+        'total': total,
+        'billable': billable,
+        'nonBillable': non_billable,
+        'intern': intern
+    }})
+
+@resource_bp.route('/resources/analytics/seniority', methods=['GET'])
+@cross_origin()
+def seniority_analytics():
+    from collections import Counter
+    resources = Resource.query.all()
+    counts = Counter([r.seniorityLevel for r in resources if r.seniorityLevel])
+    data = [{'seniority': k, 'count': v} for k, v in counts.items()]
+    return jsonify({'data': data})
+
+@resource_bp.route('/resources/analytics/skills', methods=['GET'])
+@cross_origin()
+def skill_analytics():
+    from collections import Counter
+    resources = Resource.query.all()
+    skills = []
+    for r in resources:
+        skills.extend(r.skills if isinstance(r.skills, list) else (r.skills.split(',') if r.skills else []))
+    counts = Counter(skills)
+    data = [{'skill': k, 'count': v} for k, v in counts.items()]
+    return jsonify({'data': data})
+
+
+@resource_bp.route('/resources/upcoming-releases', methods=['GET'])
+@cross_origin()
+def upcoming_releases():
+    from datetime import datetime, timedelta
+    today = datetime.today().date()
+    two_months_later = today + timedelta(days=62)
+    resources = Resource.query.all()
+    releases = []
+    for r in resources:
+        release_date = None
+        if hasattr(r, 'engagementEndDate') and r.engagementEndDate:
+            release_date = r.engagementEndDate
+        if release_date and today <= release_date <= two_months_later:
+            releases.append({
+                'resourceId': r.resource_id,
+                'name': r.fullName,
+                'releaseDate': release_date.isoformat(),
+                'currentProject': r.currentEngagement,
+                'skills': r.skills if isinstance(r.skills, list) else (r.skills.split(',') if r.skills else []),
+            })
+    return jsonify({'releases': releases})
+
+@resource_bp.route('/resources/interns', methods=['GET'])
+@cross_origin()
+def intern_management():
+    from src.domain.models.intern import Intern
+    interns = Intern.query.all()
+    def intern_to_dict(intern):
+        return {
+            'employeeId': intern.employee_id,
+            'fullName': intern.full_name or intern.name,
+            'name': intern.name,
+            'email': intern.email,
+            'phone': intern.phone,
+            'department': intern.department,
+            'mentorName': intern.mentor_name,
+            'status': intern.status,
+            'stipend': intern.stipend,
+            'internshipStartDate': str(intern.internship_start_date) if intern.internship_start_date else '',
+            'internshipEndDate': str(intern.internship_end_date) if intern.internship_end_date else '',
+            'conversionPotential': intern.conversion_potential,
+            'education': intern.education,
+            'assignedProject': intern.assigned_project,
+            'seniorityLevel': intern.seniority_level,
+            'is_intern': intern.is_intern,
+        }
+    return jsonify({'interns': [intern_to_dict(r) for r in interns]})
+
+@resource_bp.route('/resources/allocate-project', methods=['POST'])
+@cross_origin()
+def allocate_project():
+    data = request.json
+    project_id = data.get('project_id')
+    skills = data.get('skills', [])
+    seniority = data.get('seniority')
+    resources = Resource.query.all()
+    matches = [r for r in resources if set(skills).intersection(r.skills if isinstance(r.skills, list) else (r.skills.split(',') if r.skills else [])) and r.seniorityLevel == seniority]
+    # Simulate allocation: update currentEngagement
+    for r in matches:
+        r.currentEngagement = project_id
+    db.session.commit()
+    return jsonify({'allocated_resources': [r.to_dict() for r in matches]})
+
+
+@resource_bp.route('/resources/resignations', methods=['GET'])
+@cross_origin()
+def resignations():
+    from datetime import datetime
+    today = datetime.today().date()
+    resources = Resource.query.all()
+    resignations = []
+    for r in resources:
+        if hasattr(r, 'lastWorkingDay') and r.lastWorkingDay:
+            last_day = r.lastWorkingDay
+            if last_day >= today:
+                resignations.append({
+                    'resourceId': r.resource_id,
+                    'name': r.fullName,
+                    'lastWorkingDay': last_day.isoformat(),
+                    'status': 'Resigned',
+                })
+    return jsonify({'resignations': resignations})
+
+@resource_bp.route('/resources/<int:id>', methods=['GET'])
+@cross_origin()
+def get_resource_by_id(id):
+    try:
+        resource = Resource.query.filter_by(id=id).first()
+        if not resource:
+            print(f"ERROR: Resource not found for id {id}")
+            return jsonify({'error': f'Resource not found for id {id}'}), 404
+        resource_dict = resource.to_dict()
+        resource_dict['employeeId'] = getattr(resource, 'employee_id', None)
+        resource_dict['resourceId'] = getattr(resource, 'resource_id', None) or getattr(resource, 'id', None)
+        print(f"DEBUG: Resource dict for id {id}: {resource_dict}")
+        return jsonify({'resource': resource_dict})
+    except Exception as e:
+        print(f"ERROR in get_resource_by_id: {e}")
+        return jsonify({'error': 'Failed to fetch resource', 'details': str(e)}), 500
+
+@resource_bp.route('/resources/financial-overview', methods=['GET', 'OPTIONS'])
+@cross_origin()
+def get_financial_overview():
+    from src.infrastructure.db import SessionLocal
+    session = SessionLocal()
+    resources = session.query(Resource).all()
+    # Monthly financials
+    monthlyFinancials = []
+    month_map = {}
+    for r in resources:
+        if r.joining_date and r.monthly_cost:
+            month = r.joining_date.strftime('%b %Y')
+            if month not in month_map:
+                month_map[month] = {'total': 0, 'billable': 0, 'nonBillable': 0, 'intern': 0}
+            month_map[month]['total'] += r.monthly_cost or 0
+            if getattr(r, 'billable_status', False):
+                month_map[month]['billable'] += r.monthly_cost or 0
+            elif getattr(r, 'is_intern', False):
+                month_map[month]['intern'] += r.monthly_cost or 0
+            else:
+                month_map[month]['nonBillable'] += r.monthly_cost or 0
+    for month, data in sorted(month_map.items()):
+        monthlyFinancials.append({
+            'month': month,
+            'total': data['total'],
+            'billable': data['billable'],
+            'nonBillable': data['nonBillable'],
+            'intern': data['intern']
+        })
+    # YTD totals
+    ytdTotals = {'total': 0, 'billable': 0, 'nonBillable': 0, 'intern': 0}
+    for r in resources:
+        ytdTotals['total'] += r.monthly_cost or 0
+        if getattr(r, 'billable_status', False):
+            ytdTotals['billable'] += r.monthly_cost or 0
+        elif getattr(r, 'is_intern', False):
+            ytdTotals['intern'] += r.monthly_cost or 0
+        else:
+            ytdTotals['nonBillable'] += r.monthly_cost or 0
+    return jsonify({
+        'monthlyFinancials': monthlyFinancials,
+        'ytdTotals': ytdTotals
+    })
+
+

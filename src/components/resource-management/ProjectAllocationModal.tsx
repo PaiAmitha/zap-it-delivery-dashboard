@@ -1,346 +1,365 @@
+import React from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Target, User } from 'lucide-react';
+import { getProjects, getResources, allocateProject } from '@/lib/api';
+import { MultiSelect } from '@/components/ui/multi-select';
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Target, User, CheckCircle, Clock, AlertCircle } from "lucide-react";
-import { useState } from "react";
-import { useToast } from "@/hooks/use-toast";
-import { MultiSelect } from "@/components/ui/multi-select";
-
+// If any components are missing, add placeholders below:
+// Remove these if you have real implementations
+// Example placeholder:
+// export const Dialog = ({ children, ...props }: any) => <div {...props}>{children}</div>;
+// export const DialogContent = ({ children, ...props }: any) => <div {...props}>{children}</div>;
+// ...repeat for other components as needed
 interface ProjectAllocationModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
+interface Project {
+  id: string | number;
+  name: string;
+  status?: string;
+  priority?: string;
+  priority_level?: string;
+  skills?: string[];
+  primarySkills?: string[];
+}
+
+interface Resource {
+  employeeId?: string;
+  id?: string;
+  fullName?: string;
+  name?: string;
+  skills?: string[] | string;
+  primarySkills?: string[] | string;
+  seniorityLevel?: string;
+  status?: string;
+  billableStatus?: boolean;
+  currentEngagement?: string;
+  currentProject?: string;
+  projectName?: string;
+  location?: string;
+}
+
+
 export const ProjectAllocationModal = ({ isOpen, onClose }: ProjectAllocationModalProps) => {
-  const { toast } = useToast();
-  const [selectedProject, setSelectedProject] = useState("");
-  const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
-  const [selectedSeniority, setSelectedSeniority] = useState("");
+  // State for selected project, skills, resource, seniority, date, loading, and data
+  // UX: Add success state for feedback
+  const [success, setSuccess] = React.useState<string | null>(null);
+  const [selectedProject, setSelectedProject] = React.useState<string | null>(null);
+  // Skills to match are always the project's skills
+  const [selectedSkills, setSelectedSkills] = React.useState<string[]>([]);
+  const [selectedResource, setSelectedResource] = React.useState<string | null>(null);
+  const [selectedSeniority, setSelectedSeniority] = React.useState<string>('all-levels');
+  const [allocationDate, setAllocationDate] = React.useState<string>('');
+  const [loading, setLoading] = React.useState(false);
+  const [projects, setProjects] = React.useState<Project[]>([]);
+  const [allResources, setAllResources] = React.useState<Resource[]>([]);
+  const [error, setError] = React.useState<string | null>(null);
 
-  // Enhanced sample data with more realistic scenarios
-  const availableResources = [
-    {
-      id: "EMP001",
-      name: "John Smith",
-      skills: ["React.js", "Node.js", "TypeScript"],
-      primarySkill: "React.js",
-      experience: "5-7 years",
-      seniorityLevel: "Senior (3+ years)",
-      availability: "Immediate",
-      utilization: 75,
-      skillMatch: 95,
-      location: "Bangalore",
-      currentProject: "E-commerce Platform",
-      billingRate: "$85/hr",
-      availabilityDate: "2025-01-20"
-    },
-    {
-      id: "EMP002", 
-      name: "Priya Sharma",
-      skills: ["QA Testing", "Selenium", "API Testing"],
-      primarySkill: "QA Testing",
-      experience: "3-5 years",
-      seniorityLevel: "Senior (3+ years)",
-      availability: "2 weeks",
-      utilization: 60,
-      skillMatch: 88,
-      location: "Hyderabad",
-      currentProject: "Internal Testing",
-      billingRate: "$65/hr",
-      availabilityDate: "2025-02-03"
-    },
-    {
-      id: "EMP003",
-      name: "David Chen",
-      skills: ["Python", "Machine Learning", "Data Analysis"],
-      primarySkill: "Python",
-      experience: "7-10 years",
-      seniorityLevel: "Senior (3+ years)",
-      availability: "1 month",
-      utilization: 90,
-      skillMatch: 92,
-      location: "Remote",
-      currentProject: "AI Analytics Dashboard",
-      billingRate: "$95/hr",
-      availabilityDate: "2025-02-15"
-    },
-    {
-      id: "EMP004",
-      name: "Sarah Wilson",
-      skills: ["React.js", "JavaScript", "CSS"],
-      primarySkill: "React.js",
-      experience: "2 years",
-      seniorityLevel: "Junior (1-3 years)",
-      availability: "Immediate",
-      utilization: 45,
-      skillMatch: 78,
-      location: "Mumbai",
-      currentProject: "Training Project",
-      billingRate: "$45/hr",
-      availabilityDate: "2025-01-22"
-    }
+  // Helper for step indicator (must be after state declarations)
+  const steps = [
+    { label: 'Select Project', complete: !!selectedProject },
+    { label: 'Select Resource', complete: !!selectedResource },
+    { label: 'Set Start Date', complete: !!allocationDate },
+    { label: 'Allocate', complete: !!success },
   ];
+  // Fetch projects and resources on open
+  React.useEffect(() => {
+    if (!isOpen) return;
+    setLoading(true);
+    const token = localStorage.getItem('token') || '';
+    Promise.all([
+      getProjects(token),
+      getResources(token)
+    ]).then(([projData, resData]) => {
+      // Type assertions to fix 'unknown' errors
+      const projectsList = Array.isArray(projData)
+        ? projData as Project[]
+        : ((projData as { projects?: Project[] })?.projects || []);
+      const resourcesList = Array.isArray(resData)
+        ? resData as Resource[]
+        : ((resData as { resources?: Resource[] })?.resources || []);
+      setProjects(projectsList);
+      setAllResources(resourcesList);
+      setLoading(false);
+    }).catch((err) => {
+      setError('Failed to load data');
+      setLoading(false);
+    });
+  }, [isOpen]);
 
-  const projects = [
-    { id: "project-alpha", name: "Project Alpha - Mobile App", status: "Planning", priority: "High" },
-    { id: "project-beta", name: "Project Beta - Web Platform", status: "In Progress", priority: "Medium" },
-    { id: "project-gamma", name: "Project Gamma - Data Migration", status: "Planning", priority: "High" }
-  ];
+  // Get skills for selected project
+  const projectSkills = React.useMemo(() => {
+    if (!selectedProject) return [];
+    const project = projects.find(p => String(p.id) === selectedProject);
+    return project?.skills?.length ? project.skills : (project?.primarySkills || []);
+  }, [projects, selectedProject]);
 
-  const skillOptions = [
-    { label: "React.js", value: "React.js" },
-    { label: "Node.js", value: "Node.js" },
-    { label: "Python", value: "Python" },
-    { label: "QA Testing", value: "QA Testing" },
-    { label: "DevOps", value: "DevOps" },
-    { label: "Mobile Development", value: "Mobile Development" },
-    { label: "Machine Learning", value: "Machine Learning" },
-    { label: "TypeScript", value: "TypeScript" },
-    { label: "JavaScript", value: "JavaScript" },
-    { label: "Data Analysis", value: "Data Analysis" }
-  ];
+  // Always update selectedSkills when project changes
+  React.useEffect(() => {
+    setSelectedSkills(projectSkills);
+  }, [projectSkills]);
 
-  const getMatchColor = (percentage: number) => {
-    if (percentage >= 90) return "bg-green-100 text-green-800 border-green-200";
-    if (percentage >= 70) return "bg-yellow-100 text-yellow-800 border-yellow-200";
-    return "bg-red-100 text-red-800 border-red-200";
-  };
+  // Filter resources by selected skills and seniority
+  // Only show resources after project is selected
+  const filteredResources = React.useMemo(() => {
+    if (!selectedProject) return [];
+    // Use projectSkills for matching
+    return allResources
+      .map(resource => {
+        const resourceSkills = Array.isArray(resource.skills) ? resource.skills : (resource.skills ? [resource.skills] : []);
+        const matchCount = projectSkills.filter(skill => resourceSkills.includes(skill)).length;
+        const matchPercent = projectSkills.length > 0 ? Math.round((matchCount / projectSkills.length) * 100) : 0;
+        return {
+          ...resource,
+          matchPercent,
+        };
+      })
+      .filter(resource => {
+        // Only show resources with at least one skill match
+        const seniorityMatch = selectedSeniority === 'all-levels' || resource.seniorityLevel === selectedSeniority;
+        return resource.matchPercent > 0 && seniorityMatch;
+      })
+      .sort((a, b) => b.matchPercent - a.matchPercent); // Sort by best match
+  }, [allResources, selectedProject, projectSkills, selectedSeniority]);
 
-  const getAvailabilityIcon = (availability: string) => {
-    if (availability === "Immediate") return <CheckCircle className="h-4 w-4 text-green-500" />;
-    if (availability.includes("week")) return <Clock className="h-4 w-4 text-yellow-500" />;
-    return <AlertCircle className="h-4 w-4 text-red-500" />;
-  };
-
-  const handleAllocateResource = (resource: any) => {
-    if (!selectedProject) {
-      toast({
-        title: "Please Select Project",
-        description: "You must select a project before allocating resources.",
-        variant: "destructive"
+  // Handler for allocating resource (real backend)
+  const handleAllocateResource = async () => {
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      const token = localStorage.getItem('token') || '';
+      await allocateProject(token, {
+        project_id: selectedProject,
+        resource_id: selectedResource,
+        start_date: allocationDate,
+        skills: selectedSkills,
+        seniority: selectedSeniority
       });
-      return;
+
+      // Update resource status and current project locally
+      setAllResources(prev => prev.map(r => {
+        if (String(r.employeeId || r.id) === String(selectedResource)) {
+          return {
+            ...r,
+            status: 'Allocated',
+            currentProject: selectedProject,
+            currentEngagement: selectedProject,
+          };
+        }
+        return r;
+      }));
+
+      // Optionally, refresh project team members and resource details
+      // (Assume getProjects and getResources will fetch updated data)
+      const [updatedProjects, updatedResources] = await Promise.all([
+        getProjects(token),
+        getResources(token)
+      ]);
+      const projectsList = Array.isArray(updatedProjects)
+        ? updatedProjects as Project[]
+        : ((updatedProjects as { projects?: Project[] })?.projects || []);
+      const resourcesList = Array.isArray(updatedResources)
+        ? updatedResources as Resource[]
+        : ((updatedResources as { resources?: Resource[] })?.resources || []);
+      setProjects(projectsList);
+      setAllResources(resourcesList);
+
+      setLoading(false);
+      setSuccess('Resource allocated successfully!');
+      setTimeout(() => {
+        setSuccess(null);
+        onClose();
+      }, 1500);
+    } catch (err) {
+      setError('Failed to allocate resource');
+      setLoading(false);
     }
-
-    toast({
-      title: "Resource Allocated Successfully",
-      description: `${resource.name} has been allocated to the selected project.`,
-    });
-
-    console.log("Resource allocated:", {
-      resource: resource.id,
-      project: selectedProject,
-      allocationDate: new Date().toISOString()
-    });
   };
-
-  // Filter resources based on selected criteria
-  const filteredResources = availableResources.filter(resource => {
-    const matchesSeniority = !selectedSeniority || resource.seniorityLevel === selectedSeniority;
-    const matchesSkills = selectedSkills.length === 0 || 
-      selectedSkills.some(skill => resource.skills.includes(skill));
-    
-    return matchesSeniority && matchesSkills;
-  });
-
+  // ...existing logic...
+  // All hooks, state, and logic are inside the function
+  // Return statement appears only once, with all JSX tags properly closed
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-7xl max-h-[90vh] overflow-y-auto bg-white">
-        <DialogHeader className="border-b pb-4">
-          <DialogTitle className="flex items-center gap-2 text-xl font-semibold text-gray-900">
-            <Target className="h-6 w-6 text-blue-500" />
-            Smart Project Allocation System
-          </DialogTitle>
-          <p className="text-gray-600 text-sm">
-            AI-powered resource allocation based on skills, availability, and project requirements
-          </p>
-        </DialogHeader>
-
-        <div className="space-y-6">
-          {/* Enhanced Filters */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-xl border">
-            <Select value={selectedProject} onValueChange={setSelectedProject}>
-              <SelectTrigger className="bg-white">
-                <SelectValue placeholder="Select Target Project" />
-              </SelectTrigger>
-              <SelectContent>
-                {projects.map((project) => (
-                  <SelectItem key={project.id} value={project.id}>
-                    <div className="flex items-center gap-2">
-                      <Badge variant={project.priority === "High" ? "destructive" : "secondary"} className="text-xs">
-                        {project.priority}
-                      </Badge>
-                      {project.name}
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            
-            <div>
-              <MultiSelect
-                options={skillOptions}
-                selected={selectedSkills}
-                onChange={setSelectedSkills}
-                placeholder="Required Skill Set"
-                className="bg-white"
-              />
-            </div>
-            
-            <Select value={selectedSeniority} onValueChange={setSelectedSeniority}>
-              <SelectTrigger className="bg-white">
-                <SelectValue placeholder="Seniority Level" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all-levels">All Levels</SelectItem>
-                <SelectItem value="Junior (1-3 years)">Junior (1–3 years)</SelectItem>
-                <SelectItem value="Senior (3+ years)">Senior (3+ years)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Project Overview */}
-          {selectedProject && (
-            <Card className="bg-blue-50 border-blue-200">
-              <CardHeader>
-                <CardTitle className="text-blue-900">Selected Project Overview</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <p className="text-sm text-blue-600 font-medium">Project Name</p>
-                    <p className="text-blue-900">{projects.find(p => p.id === selectedProject)?.name}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-blue-600 font-medium">Status</p>
-                    <Badge variant="outline" className="text-blue-800 border-blue-300">
-                      {projects.find(p => p.id === selectedProject)?.status}
-                    </Badge>
-                  </div>
-                  <div>
-                    <p className="text-sm text-blue-600 font-medium">Priority</p>
-                    <Badge variant={projects.find(p => p.id === selectedProject)?.priority === "High" ? "destructive" : "secondary"}>
-                      {projects.find(p => p.id === selectedProject)?.priority}
-                    </Badge>
-                  </div>
+      <DialogContent className="max-w-4xl p-0 bg-gradient-to-br from-[#f8fafc] to-[#e0f7fa]">
+        <div
+          className="flex flex-col gap-2 w-full h-[80vh] overflow-y-auto scrollbar-thin scrollbar-thumb-blue-200 scrollbar-track-blue-50"
+          style={{ WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain' }}
+        >
+          <DialogHeader className="px-4 sm:px-8 pt-6 sm:pt-8 pb-4 border-b border-gray-100">
+            <DialogTitle className="flex items-center gap-3 text-2xl sm:text-3xl font-extrabold text-blue-700">
+              <Target className="h-8 w-8 text-teal-500" />
+              Project Resource Allocation
+            </DialogTitle>
+            <div className="text-sm text-gray-500 mt-1">Assign resources to projects with smart matching and instant feedback.</div>
+            {/* Step indicator */}
+            <div className="flex flex-wrap gap-2 mt-4 mb-2" aria-label="Progress steps">
+              {steps.map((step, idx) => (
+                <div key={step.label} className="flex items-center gap-1">
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold border-2 ${step.complete ? 'bg-blue-500 text-white border-blue-500' : 'bg-gray-100 text-gray-400 border-gray-300'}`}>{idx + 1}</div>
+                  <span className={`text-xs font-medium ${step.complete ? 'text-blue-700' : 'text-gray-400'}`}>{step.label}</span>
+                  {idx < steps.length - 1 && <span className="mx-1 text-gray-300">→</span>}
                 </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Available Resources */}
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Best-Fit Resources</h3>
-              <Badge variant="outline" className="text-sm">
-                {filteredResources.length} resources available
-              </Badge>
-            </div>
-            
-            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-              {filteredResources.map((resource) => (
-                <Card key={resource.id} className="hover:shadow-lg transition-all duration-300 border-gray-200">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <User className="h-5 w-5 text-gray-600" />
-                        <div>
-                          <CardTitle className="text-base">{resource.name}</CardTitle>
-                          <p className="text-sm text-gray-500">{resource.id}</p>
-                        </div>
-                      </div>
-                      <Badge className={getMatchColor(resource.skillMatch)}>
-                        {resource.skillMatch}% Match
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600 mb-1">Primary Skill</p>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="text-xs font-medium">
-                          {resource.primarySkill}
-                        </Badge>
-                        <span className="text-xs text-gray-500">({resource.experience})</span>
-                      </div>
-                    </div>
-
-                    <div>
-                      <p className="text-sm font-medium text-gray-600 mb-1">Seniority</p>
-                      <Badge variant="secondary" className="text-xs">
-                        {resource.seniorityLevel}
-                      </Badge>
-                    </div>
-                    
-                    <div>
-                      <p className="text-sm font-medium text-gray-600 mb-1">All Skills</p>
-                      <div className="flex flex-wrap gap-1">
-                        {resource.skills.map((skill, index) => (
-                          <Badge key={index} variant="secondary" className="text-xs">
-                            {skill}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-3 text-sm">
-                      <div>
-                        <p className="text-gray-600">Availability</p>
-                        <div className="flex items-center gap-1">
-                          {getAvailabilityIcon(resource.availability)}
-                          <span className="font-medium">{resource.availability}</span>
-                        </div>
-                      </div>
-                      <div>
-                        <p className="text-gray-600">Utilization</p>
-                        <div className="flex items-center gap-2">
-                          <div className="w-12 bg-gray-200 rounded-full h-2">
-                            <div 
-                              className={`h-2 rounded-full ${resource.utilization > 80 ? 'bg-red-500' : resource.utilization > 60 ? 'bg-yellow-500' : 'bg-green-500'}`}
-                              style={{ width: `${resource.utilization}%` }}
-                            ></div>
-                          </div>
-                          <span className="text-xs font-medium">{resource.utilization}%</span>
-                        </div>
-                      </div>
-                      <div>
-                        <p className="text-gray-600">Location</p>
-                        <p className="font-medium">{resource.location}</p>
-                      </div>
-                      <div>
-                        <p className="text-gray-600">Billing Rate</p>
-                        <p className="font-medium text-green-600">{resource.billingRate}</p>
-                      </div>
-                    </div>
-                    
-                    <div className="pt-2 border-t">
-                      <p className="text-xs text-gray-600 mb-2">Current: {resource.currentProject}</p>
-                      <p className="text-xs text-gray-600 mb-3">Available from: {resource.availabilityDate}</p>
-                      <Button 
-                        size="sm" 
-                        className="w-full bg-blue-500 hover:bg-blue-600 transition-colors"
-                        onClick={() => handleAllocateResource(resource)}
-                      >
-                        Allocate to Project
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
               ))}
             </div>
+          </DialogHeader>
+          <div className="flex flex-col md:flex-row gap-8 px-4 sm:px-8 pb-8 w-full">
+            {/* Left: Allocation Details */}
+            <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-8 flex flex-col gap-8 border border-gray-100 w-full md:w-1/2 min-w-0">
+              <h2 className="text-xl font-bold text-blue-700 mb-2 flex items-center gap-2">
+                <User className="h-5 w-5 text-blue-400" /> Allocation Details
+              </h2>
+              <div className="flex flex-col gap-5">
+                <div className="border-b border-dashed border-gray-200 pb-4 mb-4">
+                  <label className="block text-sm font-semibold text-blue-700 mb-1 flex items-center gap-1">
+                    Select Project *
+                    <span className="text-gray-400" title="Choose a project to allocate resources">ⓘ</span>
+                  </label>
+                  <Select value={selectedProject ?? ''} onValueChange={setSelectedProject}>
+                    <SelectTrigger className="w-full bg-white border border-blue-200 rounded-lg px-3 py-2 text-base shadow-sm">
+                      <SelectValue placeholder="Choose project" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {projects.map((project) => (
+                        <SelectItem key={project.id} value={String(project.id)}>
+                          <span className="font-semibold text-blue-700">{project.name}</span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {/* Show project skills as chips */}
+                  {projectSkills.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {projectSkills.map((skill: string, idx: number) => (
+                        <Badge key={idx} variant="secondary" className="text-xs px-2 py-1 bg-blue-50 text-blue-700 border border-blue-200 rounded">
+                          {skill}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </div>
+            {/* Seniority filter, only show after project is selected */}
+            {selectedProject && (
+              <div className="border-b border-dashed border-gray-200 pb-4 mb-4">
+                <label className="block text-sm font-semibold text-blue-700 mb-1 flex items-center gap-1">
+                  Filter by Seniority
+                  <span className="text-gray-400" title="Filter resources by seniority">ⓘ</span>
+                </label>
+                <Select value={selectedSeniority} onValueChange={setSelectedSeniority}>
+                  <SelectTrigger className="w-full bg-white border border-blue-200 rounded-lg px-3 py-2 text-base shadow-sm">
+                    <SelectValue placeholder="All levels" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all-levels">All levels</SelectItem>
+                    <SelectItem value="Junior">Junior</SelectItem>
+                    <SelectItem value="Mid">Mid</SelectItem>
+                    <SelectItem value="Senior">Senior</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            {/* Resource select, only show after project is selected */}
+            {selectedProject && (
+              <div className="border-b border-dashed border-gray-200 pb-4 mb-4">
+                <label className="block text-sm font-semibold text-blue-700 mb-1 flex items-center gap-1">
+                  Select Resource *
+                  <span className="text-gray-400" title="Choose a resource to allocate">ⓘ</span>
+                </label>
+                <Select value={selectedResource ?? ''} onValueChange={setSelectedResource}>
+                  <SelectTrigger className="w-full bg-white border border-blue-200 rounded-lg px-3 py-2 text-base shadow-sm">
+                    <SelectValue placeholder={filteredResources.length === 0 ? "No matching resources" : "Choose resource"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {filteredResources.map((resource) => (
+                      <SelectItem key={resource.employeeId || resource.id} value={String(resource.employeeId || resource.id)}>
+                        <span className="font-semibold text-blue-700">{resource.fullName || resource.name}</span>
+                        <span className="ml-2 text-xs text-teal-700">{resource.matchPercent}% match</span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+                <div className="border-b border-dashed border-gray-200 pb-4 mb-4">
+                  <label className="block text-sm font-semibold text-blue-700 mb-1 flex items-center gap-1">
+                    Allocation Start Date
+                    <span className="text-gray-400" title="Select the start date for allocation">ⓘ</span>
+                  </label>
+                  <input
+                    type="date"
+                    className="w-full border border-blue-200 rounded-lg px-3 py-2 text-base shadow-sm"
+                    value={allocationDate}
+                    onChange={e => setAllocationDate(e.target.value)}
+                  />
+                </div>
+                <div className="flex gap-3 mt-2 items-center justify-end">
+                  <Button variant="outline" onClick={onClose} className="px-6 rounded-lg border border-blue-200">Cancel</Button>
+                  <Button
+                    className="px-6 rounded-lg bg-gradient-to-r from-blue-500 to-teal-400 text-white font-semibold shadow"
+                    disabled={loading || !selectedProject || !selectedResource || !allocationDate}
+                    onClick={handleAllocateResource}
+                  >
+                    {loading ? 'Allocating...' : 'Allocate Resource'}
+                  </Button>
+                </div>
+                {(error || success) && (
+                  <div className="mt-2">
+                    {error && <div className="text-red-500 text-sm px-4">{error}</div>}
+                    {success && <div className="text-green-600 text-sm px-4 font-semibold">{success}</div>}
+                  </div>
+                )}
+              </div>
+            </div>
+            {/* Right: Smart Resource Matching */}
+            <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-8 flex flex-col gap-8 border border-gray-100 w-full md:w-1/2 min-w-0">
+              <h2 className="text-xl font-bold text-teal-700 mb-2 flex items-center gap-2">
+                <Target className="h-5 w-5 text-teal-400" /> Smart Resource Matching
+              </h2>
+              <div className="flex flex-col gap-5">
+                {!selectedProject && (
+                  <div className="text-gray-400 text-sm">Select a project to view matching resources.</div>
+                )}
+                {selectedProject && filteredResources.length === 0 && (
+                  <div className="text-gray-400 text-sm">No matching resources found for selected skills and seniority.</div>
+                )}
+                {selectedProject && filteredResources.map((resource) => (
+                  <div key={resource.employeeId || resource.id} className="rounded-xl border border-teal-100 bg-[#f6f8fc] p-4 flex flex-col gap-2 shadow hover:shadow-md transition">
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-3">
+                        {/* Avatar circle with initials */}
+                        <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-lg">
+                          {(resource.fullName || resource.name || '').split(' ').map(n => n[0]).join('').toUpperCase()}
+                        </div>
+                        <div>
+                          <div className="text-base font-semibold text-blue-700">{resource.fullName || resource.name}</div>
+                          <div className="text-xs text-gray-500 font-medium">{resource.seniorityLevel || 'Developer'}</div>
+                        </div>
+                      </div>
+                      <Badge variant="outline" className={`text-xs px-2 py-1 rounded ${resource.status === 'Available' ? 'bg-blue-100 text-blue-700' : resource.billableStatus ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-700'}`}>
+                        {resource.status === 'Available' ? 'Benched' : resource.billableStatus ? 'Billable' : 'Associate'}
+                      </Badge>
+                    </div>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {(Array.isArray(resource.skills) ? resource.skills : [resource.skills]).map((skill: string, idx: number) => (
+                        <Badge key={idx} variant="secondary" className="text-xs px-2 py-1 bg-teal-50 text-teal-700 border border-teal-200 rounded">
+                          {skill}
+                        </Badge>
+                      ))}
+                    </div>
+                    <div className="flex items-center gap-2 mt-2">
+                      <span className="text-xs font-semibold text-teal-700">Match: {resource.matchPercent}%</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
-        </div>
-
-        <div className="flex justify-end gap-3 mt-6 pt-4 border-t">
-          <Button variant="outline" onClick={onClose} className="px-6">
-            Close
-          </Button>
-          <Button className="px-6 bg-blue-500 hover:bg-blue-600">
-            Save Allocations
-          </Button>
         </div>
       </DialogContent>
     </Dialog>
