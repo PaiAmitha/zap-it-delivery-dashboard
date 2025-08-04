@@ -6,8 +6,25 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Users, Calendar, Target, TrendingUp, AlertTriangle, CheckCircle, FileText, Plus, Edit } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Users,
+  Calendar,
+  Target,
+  TrendingUp,
+  AlertTriangle,
+  CheckCircle,
+  FileText,
+  Plus,
+  Edit,
+} from "lucide-react";
 import { TeamsTab } from "@/components/dashboard/tabs/TeamsTab";
 import { DevelopmentTab } from "@/components/dashboard/tabs/DevelopmentTab";
 import { QATab } from "@/components/dashboard/tabs/QATab";
@@ -15,15 +32,21 @@ import { AddSprintDataModal } from "@/components/dashboard/AddSprintDataModal";
 import { EditProjectModal } from "@/components/dashboard/EditProjectModal";
 import { DeliveryMetricsFilter } from "@/components/dashboard/DeliveryMetricsFilter";
 import { TeamMemberCard } from "@/components/dashboard/TeamMemberCard";
-import { getProjectDetails, getProjectMilestones, getProjectRisks, getProjectTeamMembers, getProjectEngineeringMetrics } from "@/lib/api";
+import {
+  getProjectDetails,
+  getProjectMilestones,
+  getProjectRisks,
+  getProjectTeamMembers,
+  getProjectEngineeringMetrics,
+} from "@/lib/api";
 
 const ProjectDetails = () => {
   const { projectId } = useParams();
   const navigate = useNavigate();
   const [isAddSprintModalOpen, setIsAddSprintModalOpen] = useState(false);
   const [isEditProjectModalOpen, setIsEditProjectModalOpen] = useState(false);
-  const [selectedDeliveryFilter, setSelectedDeliveryFilter] = useState("average");
-
+  const [selectedDeliveryFilter, setSelectedDeliveryFilter] =
+    useState("average");
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -39,15 +62,24 @@ const ProjectDetails = () => {
     setLoading(true);
     setError(null);
     try {
-      const token = localStorage.getItem('token') || '';
-      const [projectData, milestonesData, risksData, teamMembersData, engineeringMetricsData, sprintsData] = await Promise.all([
+      const token = localStorage.getItem("token") || "";
+      const [
+        projectData,
+        milestonesData,
+        risksData,
+        teamMembersData,
+        engineeringMetricsData,
+        sprintsData,
+      ] = await Promise.all([
         getProjectDetails(token, projectId),
         getProjectMilestones(token, projectId),
         getProjectRisks(token, projectId),
         getProjectTeamMembers(token, projectId),
         getProjectEngineeringMetrics(token, projectId),
         // Always fetch sprints from backend
-        (projectId ? (await import('@/lib/api')).getProjectSprints(token, projectId) : { sprints: [] })
+        projectId
+          ? (await import("@/lib/api")).getProjectSprints(token, projectId)
+          : { sprints: [] },
       ]);
       // Merge all related data into the project object
       const mergedProject = {
@@ -55,9 +87,10 @@ const ProjectDetails = () => {
         milestones: (milestonesData as any)?.milestones || [],
         risks: (risksData as any)?.risks || [],
         teamMembers: (teamMembersData as any)?.teamMembers || [],
-        engineeringMetrics: (engineeringMetricsData as any)?.engineeringMetrics || {},
+        engineeringMetrics:
+          (engineeringMetricsData as any)?.engineeringMetrics || {},
         riskCount: ((risksData as any)?.risks || []).length,
-        sprints: (sprintsData as any)?.sprints || []
+        sprints: (sprintsData as any)?.sprints || [],
       };
       setProject(mergedProject);
       setMilestones(mergedProject.milestones);
@@ -65,7 +98,7 @@ const ProjectDetails = () => {
       setTeamMembers(mergedProject.teamMembers);
       setEngineeringMetrics(mergedProject.engineeringMetrics);
     } catch (err: any) {
-      setError(err?.message || 'Failed to load project details');
+      setError(err?.message || "Failed to load project details");
     } finally {
       setLoading(false);
     }
@@ -85,47 +118,65 @@ const ProjectDetails = () => {
       <div className="space-y-6">
         <BreadcrumbNavigation />
         <div className="text-center py-12">
-          <h2 className="text-2xl font-bold text-gray-900">Project Not Found</h2>
-          <p className="text-gray-600 mt-2">The requested project could not be found.</p>
+          <h2 className="text-2xl font-bold text-gray-900">
+            Project Not Found
+          </h2>
+          <p className="text-gray-600 mt-2">
+            The requested project could not be found.
+          </p>
         </div>
       </div>
     );
   }
 
   const getStatusColor = (status: string) => {
-  if (!status) return 'bg-gray-100 text-gray-800';
-  switch (status.toLowerCase()) {
-    case 'completed': return 'bg-green-100 text-green-800';
-    case 'on track': return 'bg-blue-100 text-blue-800';
-    case 'at risk': return 'bg-orange-100 text-orange-800';
-    case 'critical': return 'bg-red-100 text-red-800';
-    default: return 'bg-gray-100 text-gray-800';
-  }
+    if (!status) return "bg-gray-100 text-gray-800";
+    switch (status.toLowerCase()) {
+      case "completed":
+        return "bg-green-100 text-green-800";
+      case "on track":
+        return "bg-blue-100 text-blue-800";
+      case "at risk":
+        return "bg-orange-100 text-orange-800";
+      case "critical":
+        return "bg-red-100 text-red-800";
+      default:
+        return "bg-gray-100 text-gray-800";
+    }
   };
 
   const getPriorityColor = (priority: string) => {
     switch (priority.toLowerCase()) {
-      case 'high': return 'bg-red-100 text-red-800';
-      case 'medium': return 'bg-orange-100 text-orange-800';
-      case 'low': return 'bg-green-100 text-green-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case "high":
+        return "bg-red-100 text-red-800";
+      case "medium":
+        return "bg-orange-100 text-orange-800";
+      case "low":
+        return "bg-green-100 text-green-800";
+      default:
+        return "bg-gray-100 text-gray-800";
     }
   };
 
   const getBadgeVariant = (status: string) => {
     switch (status) {
-      case 'completed': return 'default';
-      case 'on track': return 'secondary';
-      case 'at risk': return 'outline';
-      case 'delayed': return 'destructive';
-      default: return 'secondary';
+      case "completed":
+        return "default";
+      case "on track":
+        return "secondary";
+      case "at risk":
+        return "outline";
+      case "delayed":
+        return "destructive";
+      default:
+        return "secondary";
     }
   };
 
   return (
     <div className="space-y-6">
       <BreadcrumbNavigation />
-      
+
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <div>
@@ -137,14 +188,14 @@ const ProjectDetails = () => {
           </Badge>
         </div>
         <div className="flex items-center gap-2">
-          <Button 
+          <Button
             onClick={() => setIsAddSprintModalOpen(true)}
             className="flex items-center gap-2"
           >
             <Plus className="h-4 w-4" />
             Add Sprint
           </Button>
-          <Button 
+          <Button
             variant="outline"
             onClick={() => setIsEditProjectModalOpen(true)}
             className="flex items-center gap-2"
@@ -171,7 +222,9 @@ const ProjectDetails = () => {
                 <CardTitle className="text-sm font-medium">Client</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{project?.client || '-'}</div>
+                <div className="text-2xl font-bold">
+                  {project?.client || "-"}
+                </div>
               </CardContent>
             </Card>
             <Card>
@@ -179,7 +232,9 @@ const ProjectDetails = () => {
                 <CardTitle className="text-sm font-medium">Progress</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{project?.progress ?? '-'}%</div>
+                <div className="text-2xl font-bold">
+                  {project?.progress ?? "-"}%
+                </div>
                 <Progress value={project?.progress || 0} className="mt-2" />
               </CardContent>
             </Card>
@@ -189,22 +244,28 @@ const ProjectDetails = () => {
                 <Users className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{project?.teamSize ?? '-'}</div>
+                <div className="text-2xl font-bold">
+                  {project?.teamSize ?? "-"}
+                </div>
               </CardContent>
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Risk Count</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  Risk Count
+                </CardTitle>
                 <Target className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{project?.riskCount ?? '-'}</div>
+                <div className="text-2xl font-bold">
+                  {project?.riskCount ?? "-"}
+                </div>
               </CardContent>
             </Card>
           </div>
 
           {/* Milestones Table */}
-          <Card>
+          {/* <Card> 
             <CardHeader>
               <CardTitle>Milestones</CardTitle>
             </CardHeader>
@@ -234,77 +295,208 @@ const ProjectDetails = () => {
                 </TableBody>
               </Table>
             </CardContent>
-          </Card>
+          </Card> */}
+
+          {/* Lower Two Column Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Key Team Members Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="h-5 w-5" />
+                  Key Team Members
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm text-muted-foreground">
+                <div className="flex justify-between">
+                  <span>Engineering Manager</span>
+                  <span className="text-black font-medium">
+                    {teamMembers.find((m) => m.role === "Engineering Manager")
+                      ?.name || "-"}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Scrum Master</span>
+                  <span className="text-black font-medium">
+                    {teamMembers.find((m) => m.role === "Scrum Master")?.name ||
+                      "-"}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Tech Lead</span>
+                  <span className="text-black font-medium">
+                    {teamMembers.find((m) => m.role === "Tech Lead")?.name ||
+                      "-"}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span>CSP</span>
+                  <span className="text-black font-medium">
+                    {teamMembers.find((m) => m.role === "CSP")?.name || "-"}
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Project Details Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
+                  Project Details
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm text-muted-foreground">
+                <div className="flex justify-between">
+                  <span>Project Type</span>
+                  <Badge
+                    className="bg-blue-100 text-blue-800"
+                    variant="outline"
+                  >
+                    {project.projectType || "Fixed Bid"}
+                  </Badge>
+                </div>
+                <div className="flex justify-between">
+                  <span>Duration</span>
+                  <span className="text-black font-medium">
+                    {project.duration || "24 weeks"}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Current Stage</span>
+                  <Badge variant="secondary">
+                    {project.stage || "Development"}
+                  </Badge>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
         <TabsContent value="delivery" className="space-y-6">
           {/* Delivery Metrics Filter */}
-        <DeliveryMetricsFilter
-          selectedFilter={selectedDeliveryFilter}
-          onFilterChange={setSelectedDeliveryFilter}
-          totalSprints={project?.sprints?.length || 0}
-        />
+          <DeliveryMetricsFilter
+            selectedFilter={selectedDeliveryFilter}
+            onFilterChange={setSelectedDeliveryFilter}
+            totalSprints={project?.sprints?.length || 0}
+          />
 
-        {/* Delivery KPIs - computed from sprints and filter */}
-        {(() => {
-          const sprints = project?.sprints || [];
-          let filteredSprints = sprints;
-          if (selectedDeliveryFilter.startsWith('sprint-')) {
-            const sprintNum = parseInt(selectedDeliveryFilter.replace('sprint-', ''));
-            filteredSprints = sprints.filter(s => s.sprintNumber === sprintNum);
-          }
-          // Default: average over all sprints
-          const metrics = {
-            sprintVelocity: filteredSprints.length ? (filteredSprints.reduce((sum, s) => sum + (s.velocity || 0), 0) / filteredSprints.length).toFixed(1) : '-',
-            predictability: filteredSprints.length ? (filteredSprints.reduce((sum, s) => sum + (s.predictability || 0), 0) / filteredSprints.length).toFixed(1) : '-',
-            defectLeakage: filteredSprints.length ? (filteredSprints.reduce((sum, s) => sum + (s.defectLeakage || 0), 0) / filteredSprints.length).toFixed(1) : '-',
-            onTimeDelivery: filteredSprints.length ? (filteredSprints.reduce((sum, s) => sum + (s.onTimeDelivery || 0), 0) / filteredSprints.length).toFixed(1) : '-',
-          };
-          return (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Sprint Velocity</CardTitle>
-                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{metrics.sprintVelocity}</div>
-                  <p className="text-xs text-muted-foreground">Story points</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Predictability</CardTitle>
-                  <Target className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{metrics.predictability}%</div>
-                  <p className="text-xs text-muted-foreground">Sprint commitment</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Defect Leakage</CardTitle>
-                  <AlertTriangle className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{metrics.defectLeakage}</div>
-                  <p className="text-xs text-muted-foreground">Production defects</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">On-Time Delivery</CardTitle>
-                  <CheckCircle className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{metrics.onTimeDelivery}%</div>
-                  <p className="text-xs text-muted-foreground">Sprint goals met</p>
-                </CardContent>
-              </Card>
-            </div>
-          );
-        })()}
+          {/* Delivery KPIs - computed from sprints and filter */}
+          {(() => {
+            const sprints = project?.sprints || [];
+            let filteredSprints = sprints;
+            if (selectedDeliveryFilter.startsWith("sprint-")) {
+              const sprintNum = parseInt(
+                selectedDeliveryFilter.replace("sprint-", "")
+              );
+              filteredSprints = sprints.filter(
+                (s) => s.sprintNumber === sprintNum
+              );
+            }
+            // Default: average over all sprints
+            const metrics = {
+              sprintVelocity: filteredSprints.length
+                ? (
+                    filteredSprints.reduce(
+                      (sum, s) => sum + (s.velocity || 0),
+                      0
+                    ) / filteredSprints.length
+                  ).toFixed(1)
+                : "-",
+              predictability: filteredSprints.length
+                ? (
+                    filteredSprints.reduce(
+                      (sum, s) => sum + (s.predictability || 0),
+                      0
+                    ) / filteredSprints.length
+                  ).toFixed(1)
+                : "-",
+              defectLeakage: filteredSprints.length
+                ? (
+                    filteredSprints.reduce(
+                      (sum, s) => sum + (s.defectLeakage || 0),
+                      0
+                    ) / filteredSprints.length
+                  ).toFixed(1)
+                : "-",
+              onTimeDelivery: filteredSprints.length
+                ? (
+                    filteredSprints.reduce(
+                      (sum, s) => sum + (s.onTimeDelivery || 0),
+                      0
+                    ) / filteredSprints.length
+                  ).toFixed(1)
+                : "-",
+            };
+            return (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">
+                      Sprint Velocity
+                    </CardTitle>
+                    <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">
+                      {metrics.sprintVelocity}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Story points
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">
+                      Predictability
+                    </CardTitle>
+                    <Target className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">
+                      {metrics.predictability}%
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Sprint commitment
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">
+                      Defect Leakage
+                    </CardTitle>
+                    <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">
+                      {metrics.defectLeakage}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Production defects
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">
+                      On-Time Delivery
+                    </CardTitle>
+                    <CheckCircle className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">
+                      {metrics.onTimeDelivery}%
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Sprint goals met
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+            );
+          })()}
 
           {/* Milestone Status */}
           <Card>
@@ -324,12 +516,16 @@ const ProjectDetails = () => {
                         <Badge variant={getBadgeVariant(milestone.status)}>
                           {milestone.status}
                         </Badge>
-                        <span className="text-sm text-muted-foreground">{milestone.date}</span>
+                        <span className="text-sm text-muted-foreground">
+                          {milestone.date}
+                        </span>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
                       <Progress value={milestone.progress} className="flex-1" />
-                      <span className="text-sm font-medium">{milestone.progress}% complete</span>
+                      <span className="text-sm font-medium">
+                        {milestone.progress}% complete
+                      </span>
                     </div>
                   </div>
                 ))}
@@ -348,16 +544,27 @@ const ProjectDetails = () => {
             <CardContent>
               <div className="space-y-3">
                 {risks.map((risk, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div
+                    key={index}
+                    className="flex items-center justify-between p-3 border rounded-lg"
+                  >
                     <div className="flex-1">
                       <p className="font-medium text-sm">{risk.issue}</p>
-                      <p className="text-xs text-gray-500">Owner: {risk.owner}</p>
+                      <p className="text-xs text-gray-500">
+                        Owner: {risk.owner}
+                      </p>
                     </div>
                     <div className="flex gap-2">
-                      <Badge className={getPriorityColor(risk.priority)} variant="outline">
+                      <Badge
+                        className={getPriorityColor(risk.priority)}
+                        variant="outline"
+                      >
                         {risk.priority}
                       </Badge>
-                      <Badge className={getStatusColor(risk.status)} variant="outline">
+                      <Badge
+                        className={getStatusColor(risk.status)}
+                        variant="outline"
+                      >
                         {risk.status}
                       </Badge>
                     </div>
@@ -379,7 +586,7 @@ const ProjectDetails = () => {
               <TabsTrigger value="qa">QA</TabsTrigger>
             </TabsList>
 
-      <TabsContent value="development">
+            <TabsContent value="development">
               <DevelopmentTab engineeringMetrics={engineeringMetrics} />
             </TabsContent>
 
@@ -391,7 +598,7 @@ const ProjectDetails = () => {
       </Tabs>
 
       {/* Modals */}
-      <AddSprintDataModal 
+      <AddSprintDataModal
         isOpen={isAddSprintModalOpen}
         onClose={(refresh?: boolean) => {
           setIsAddSprintModalOpen(false);
@@ -408,7 +615,7 @@ const ProjectDetails = () => {
         projectId={project?.id}
         projectName={project?.name}
       />
-      <EditProjectModal 
+      <EditProjectModal
         isOpen={isEditProjectModalOpen}
         onClose={(refresh?: boolean) => {
           setIsEditProjectModalOpen(false);
