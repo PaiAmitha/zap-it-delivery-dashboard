@@ -268,15 +268,21 @@ export const ResourcesTab = () => {
                             })()}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-left">
-                          <div className="text-sm">
-                            <div className="font-medium text-gray-900">
-                              {resource.status}
-                            </div>
-                            <div className="text-gray-500">
-                              {resource.skillCategory}
-                            </div>
-                          </div>
+                        <TableCell>
+                          <Badge
+                            variant={
+                              resource.billableStatus ? "default" : "secondary"
+                            }
+                            className={
+                              resource.billableStatus
+                                ? "bg-green-100 text-green-800 hover:bg-green-200"
+                                : "bg-gray-100 text-gray-800 hover:bg-gray-200"
+                            }
+                          >
+                            {resource.billableStatus
+                              ? "Billable"
+                              : "Non-Billable"}
+                          </Badge>
                         </TableCell>
                         <TableCell className="text-left font-medium text-gray-900">
                           {(() => {
